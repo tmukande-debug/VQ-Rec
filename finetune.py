@@ -5,9 +5,9 @@ from recbole.config import Config
 from recbole.data import data_preparation
 from recbole.utils import init_seed, init_logger, set_color
 
-from vqrec import VQRec
+from vqrec2 import VQRec
 from utils import create_dataset
-from trainer import VQRecTrainer
+from trainer1 import VQRecTrainer
 
 
 def finetune(model_name, dataset, pretrained_file='', finetune_mode='', **kwargs):
