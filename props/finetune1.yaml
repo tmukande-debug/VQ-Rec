@@ -1,0 +1,29 @@
+# Example configuration file for VQ-Rec
+
+model:
+  name: VQRec
+  embedding_size: 64
+  codebook_size: 512
+  num_layers: 1
+  hidden_size: 64
+  dropout: 0.2
+  use_residual: true
+
+data:
+  name: ml-1m
+  batch_size: 512
+  num_workers: 4
+  shuffle: true
+  order: TO
+  feedback_type: rating
+
+train:
+  epoch: 20
+  optimizer: Adam
+  learning_rate: 0.001
+  weight_decay: 0.0
+
+evaluate:
+  metrics: [Recall@20, NDCG@20]
+  validate_freq: 1
+  validation_steps: 1000
