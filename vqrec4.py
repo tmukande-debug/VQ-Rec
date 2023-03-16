@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 #from recbole.model.layers import TransformerEncoder
 from recbole.model.abstract_recommender import SequentialRecommender
-from mega_pytorch import Mega
+from sinkhorn_transformer import SinkhornTransformerLM
+from sinkhorn_transformer import Autopadder
 
 def log(t, eps = 1e-6):
     return torch.log(t + eps)
