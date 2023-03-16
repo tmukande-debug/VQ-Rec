@@ -51,18 +51,14 @@ class VQRec(SequentialRecommender):
         super().__init__(config, dataset)
 
         # VQRec args
-        self.num_tokens = config['num_tokens']
-        self.dim = config['dim']
-        self.heads = config['heads']
-        self.depth = config['depth']
+        self.code_dim = config['code_dim']
+        self.code_cap = config['code_cap']
         self.pq_codes = dataset.pq_codes
         self.temperature = config['temperature']
         self.index_assignment_flag = False
         self.sinkhorn_iter = config['sinkhorn_iter']
         self.fake_idx_ratio = config['fake_idx_ratio']
-        self.max_seq_len = config['max_seq_len']
-        self.bucket_size = config['bucket_size']
-        self.causal = True
+
         self.train_stage = config['train_stage']
         assert self.train_stage in [
             'pretrain', 'inductive_ft'
@@ -70,14 +66,14 @@ class VQRec(SequentialRecommender):
 
   
         # load parameters info
-        self.n_layers = config['n_layers']
-        self.n_heads = config['n_heads']
-        self.hidden_size = config['hidden_size']  # same as embedding_size
-        self.inner_size = config['inner_size']  # the dimensionality in feed-forward layer
-        self.hidden_dropout_prob = config['hidden_dropout_prob']
-        self.attn_dropout_prob = config['attn_dropout_prob']
-        self.hidden_act = config['hidden_act']
-        self.layer_norm_eps = config['layer_norm_eps']
+        self.num_tokens = config['num_tokens']
+        self.dim = config['dim']
+        self.heads = config['heads']
+        self.depth = config['depth']
+        self.max_seq_len = config['max_seq_len']
+        self.bucket_size = config['bucket_size']
+        self.causal = True
+        self.hidden_size = config['hidden_size']
 
         self.initializer_range = config['initializer_range']
         self.loss_type = config['loss_type']
@@ -88,20 +84,22 @@ class VQRec(SequentialRecommender):
         self.reassigned_code_embedding = None
 
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
-        self.trm_encoder = Mega(
-            num_tokens = 256,            # number of tokens
-            dim = 128,                   # model dimensions
-            depth = 2,                   # depth
-            ema_heads = self.n_heads,              # number of EMA heads
-            attn_dim_qk = 4,            # dimension of queries / keys in attention
-            attn_dim_value = 64,        # dimensino of values in attention
-            laplacian_attn_fn = True,    # whether to use softmax (false) or laplacian attention activation fn (true)
-            )
-        
+        self.trm_encoder =  SinkhornTransformerLM(
+           num_tokens = num_tokens,
+           dim = dim,
+           heads = heads,
+           depth = depth,
+           max_seq_len = max_seq_len,
+           bucket_size = bucket_size,
+           causal = True
+           )
+
+        self.trm_encoder = Autopadder(model, pad_left=True) # autopadder will fetch the bucket size and autopad input
+
         self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
 
-        self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        self.dropout = nn.Dropout(self.hidden_dropout_prob)
+        #self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+        #self.dropout = nn.Dropout(self.hidden_dropout_prob)
 
         if self.loss_type == 'BPR':
             raise NotImplementedError()
