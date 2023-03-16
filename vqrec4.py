@@ -136,11 +136,19 @@ class VQRec(SequentialRecommender):
         codes = codes.reshape(-1, self.max_seq_length, self.code_dim * self.code_cap)
      return codes
             
-    def forward(self, item_seq, item_seq_len):
+    def forward(self, item_seq, item_seq_len, **kwargs):
         position_ids = torch.arange(item_seq.size(1), dtype=torch.long, device=item_seq.device)
         position_ids = position_ids.unsqueeze(0).expand_as(item_seq)
         position_embedding = self.position_embedding(position_ids)
-
+        
+        item_seq = self.to_token_emb(item_seq)
+        item_seq = self.axial_pos_emb(item_seq) + item_seq
+        item_seq = self.emb_dropout(item_seq)
+        item_seq = self.sinkhorn_transformer(item_seq, **kwargs)
+        item_seq = self.norm(item_seq)
+        
+        return self.to_logits(item_seq)
+    
         pq_code_seq = self.pq_codes[item_seq]
         if self.index_assignment_flag:
             pq_code_emb = F.embedding(pq_code_seq, self.reassigned_code_embedding, padding_idx=0).mean(dim=-2)
@@ -149,7 +157,7 @@ class VQRec(SequentialRecommender):
         input_emb = pq_code_emb + position_embedding
         input_emb = self.LayerNorm(input_emb)
         input_emb = self.dropout(input_emb)
-
+        
         extended_attention_mask = self.get_attention_mask(item_seq)
 
         trm_output = self.trm_encoder(input_emb, extended_attention_mask)
