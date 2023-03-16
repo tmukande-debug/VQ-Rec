@@ -74,6 +74,10 @@ class VQRec(SequentialRecommender):
         self.bucket_size = config['bucket_size']
         self.causal = True
         self.hidden_size = config['hidden_size']
+        self.hidden_dropout_prob = config['hidden_dropout_prob']
+        self.attn_dropout_prob = config['attn_dropout_prob']
+        self.hidden_act = config['hidden_act']
+        self.layer_norm_eps = config['layer_norm_eps']
 
         self.initializer_range = config['initializer_range']
         self.loss_type = config['loss_type']
