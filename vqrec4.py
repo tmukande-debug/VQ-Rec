@@ -51,19 +51,24 @@ class VQRec(SequentialRecommender):
         super().__init__(config, dataset)
 
         # VQRec args
-        self.code_dim = config['code_dim']
-        self.code_cap = config['code_cap']
+        self.num_tokens = config['num_tokens']
+        self.dim = config['dim']
+        self.heads = config['heads']
+        self.depth = config['depth']
         self.pq_codes = dataset.pq_codes
         self.temperature = config['temperature']
         self.index_assignment_flag = False
         self.sinkhorn_iter = config['sinkhorn_iter']
         self.fake_idx_ratio = config['fake_idx_ratio']
-        self.num_heads = config.ema_heads
+        self.max_seq_len = config['max_seq_len']
+        self.bucket_size = config['bucket_size']
+        self.causal = True
         self.train_stage = config['train_stage']
         assert self.train_stage in [
             'pretrain', 'inductive_ft'
         ], f'Unknown train stage: [{self.train_stage}]'
 
+  
         # load parameters info
         self.n_layers = config['n_layers']
         self.n_heads = config['n_heads']
