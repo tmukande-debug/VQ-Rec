@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from recbole.model.layers import TransformerEncoder
-from myRecommender import SequentialRecommender
-
+#from recbole.model.layers import TransformerEncoder
+from recbole.model.abstract_recommender import SequentialRecommender
+from mega_pytorch import Mega
 
 def log(t, eps = 1e-6):
     return torch.log(t + eps)
@@ -57,7 +57,7 @@ class VQRec(SequentialRecommender):
         self.index_assignment_flag = False
         self.sinkhorn_iter = config['sinkhorn_iter']
         self.fake_idx_ratio = config['fake_idx_ratio']
-
+        self.num_heads = config.ema_heads
         self.train_stage = config['train_stage']
         assert self.train_stage in [
             'pretrain', 'inductive_ft'
@@ -82,16 +82,16 @@ class VQRec(SequentialRecommender):
         self.reassigned_code_embedding = None
 
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
-        self.trm_encoder = TransformerEncoder(
-            n_layers=self.n_layers,
-            n_heads=self.n_heads,
-            hidden_size=self.hidden_size,
-            inner_size=self.inner_size,
-            hidden_dropout_prob=self.hidden_dropout_prob,
-            attn_dropout_prob=self.attn_dropout_prob,
-            hidden_act=self.hidden_act,
-            layer_norm_eps=self.layer_norm_eps
-        )
+        self.trm_encoder = Mega(
+            num_tokens = 256,            # number of tokens
+            dim = 128,                   # model dimensions
+            depth = 2,                   # depth
+            ema_heads = self.n_heads,              # number of EMA heads
+            attn_dim_qk = 4,            # dimension of queries / keys in attention
+            attn_dim_value = 64,        # dimensino of values in attention
+            laplacian_attn_fn = True,    # whether to use softmax (false) or laplacian attention activation fn (true)
+            )
+        
         self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
 
         self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
@@ -121,11 +121,16 @@ class VQRec(SequentialRecommender):
 
     def code_projection(self):
         doubly_stochastic_matrix = gumbel_sinkhorn(torch.exp(self.trans_matrix), n_iters=self.sinkhorn_iter)
-        trans = differentiable_topk(doubly_stochastic_matrix.reshape(-1, self.code_cap + 1), 1)
-        trans = torch.ceil(trans.reshape(-1, self.code_cap + 1, self.code_cap + 1))
-        raw_embed = self.pq_code_embedding.weight.reshape(self.code_dim, self.code_cap + 1, -1)
-        trans_embed = torch.bmm(trans, raw_embed).reshape(-1, self.hidden_size)
-        return trans_embed
+        trans = differentiable_topk(doubly_stochastic_matrix, k=self.code_cap + 1, temperature=self.temperature)
+        trans = trans[:, :, 1:]
+        if self.index_assignment_flag:
+           index_assignment = torch.argmax(trans, dim=-1)
+        self.reassigned_code_embedding = self.pq_code_embedding(index_assignment)
+        trans = trans.unsqueeze(-1)
+        codebooks = self.pq_code_embedding.weight.unsqueeze(0)
+        codes = torch.einsum('bqnh,hd->bqnd', trans, codebooks)
+        codes = codes.reshape(-1, self.max_seq_length, self.code_dim * self.code_cap)
+     return codes
             
     def forward(self, item_seq, item_seq_len):
         position_ids = torch.arange(item_seq.size(1), dtype=torch.long, device=item_seq.device)
@@ -143,7 +148,7 @@ class VQRec(SequentialRecommender):
 
         extended_attention_mask = self.get_attention_mask(item_seq)
 
-        trm_output = self.trm_encoder(input_emb, extended_attention_mask, output_all_encoded_layers=True)
+        trm_output = self.trm_encoder(input_emb, extended_attention_mask)
         output = trm_output[-1]
         output = self.gather_indexes(output, item_seq_len - 1)
         return output  # [B H]
