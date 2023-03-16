@@ -1,0 +1,26 @@
+num_tokens: 2
+dim: 256
+heads: 8,
+depth: 12
+max_seq_len: 2048,
+bucket_size: 128,
+causal: True
+loss_type: 'CE'
+
+code_dim: 32
+code_cap: 256
+hidden_size: 300
+temperature: 0.07
+train_stage: inductive_ft # pretrain / inductive_ft
+
+index_path: dataset/downstream
+index_pretrain_dataset: ~
+index_suffix: OPQ32,IVF1,PQ32x8.strict.index
+
+plm_suffix: feat1CLS
+plm_size: 768
+sinkhorn_iter: 3
+reassign_steps: 5
+eval_batch_size: 1024
+
+fake_idx_ratio: 0.75
