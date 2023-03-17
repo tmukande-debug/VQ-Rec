@@ -145,3 +145,30 @@ class VQRec(SequentialRecommender):
         raise NotImplementedError()
 
     return {'logits': logits, 'loss': loss}
+
+
+def forward(self, item_seq, item_seq_len):
+    batch_size, seq_len = item_seq.shape
+
+    # Generate position embeddings
+    pos_encodings = self.positional_encoding[:, :seq_len].unsqueeze(0).repeat(batch_size, 1, 1).to(item_seq.device)
+
+    # Embed the item sequence using PQ codes
+    pq_code_seq = self.pq_codes[item_seq]  # Shape: (batch_size, seq_len, code_dim)
+    pq_code_seq = pq_code_seq.permute(0, 2, 1)  # Shape: (batch_size, code_dim, seq_len)
+
+    # Reshape the PQ codes for the Sinkhorn Transformer
+    pq_code_seq = pq_code_seq.reshape(batch_size, self.num_heads, self.head_dim, seq_len)  # Shape: (batch_size, num_heads, head_dim, seq_len)
+
+    # Apply the Sinkhorn Transformer
+    st_output = self.sinkhorn_transformer(pq_code_seq, pos_encodings)
+
+    # Flatten the output and apply normalization and dropout
+    st_output = st_output.reshape(batch_size, self.code_cap * self.code_dim)  # Shape: (batch_size, code_cap * code_dim)
+    st_output = self.LayerNorm(st_output)
+    st_output = self.dropout(st_output)
+
+    # Gather the output for the last item in each sequence
+    output = self.gather_indexes(st_output, item_seq_len - 1)
+
+    return output  # [B H]
