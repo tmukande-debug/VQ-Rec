@@ -78,7 +78,7 @@ class VQRec(SequentialRecommender):
         # parameters initialization
         self.apply(self._init_weights)
 
-  def _init_weights(self, module):
+    def _init_weights(self, module):
         """ Initialize the weights """
         if isinstance(module, (nn.Linear, nn.Embedding)):
             # Slightly different from the TF version which uses truncated_normal for initialization
@@ -88,104 +88,103 @@ class VQRec(SequentialRecommender):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
             
-  
-  def forward(self, seq):
+    def forward(self, seq):
     # PQ coding
-    seq_codes = self.pq_codes[seq].view(-1, self.code_cap)
-    seq_codes = torch.cat((seq_codes, torch.zeros(seq_codes.size(0), 1).to(seq_codes.device)), dim=-1).long()
-    seq_codes = seq_codes.view(-1)
-    seq_codes = self.pq_code_embedding(seq_codes)
-    seq_codes = seq_codes.view(-1, self.max_seq_length, self.hidden_size)
+        seq_codes = self.pq_codes[seq].view(-1, self.code_cap)
+        seq_codes = torch.cat((seq_codes, torch.zeros(seq_codes.size(0), 1).to(seq_codes.device)), dim=-1).long()
+        seq_codes = seq_codes.view(-1)
+        seq_codes = self.pq_code_embedding(seq_codes)
+        seq_codes = seq_codes.view(-1, self.max_seq_length, self.hidden_size)
 
     # Sinkhorn Transformer encoding
-    seq_len = seq.size(1)
-    position_ids = torch.arange(seq_len, dtype=torch.long, device=seq.device)
-    position_ids = position_ids.unsqueeze(0).expand_as(seq)
-    position_embeds = self.position_embedding(position_ids)
-    seq_codes += position_embeds
+        seq_len = seq.size(1)
+        position_ids = torch.arange(seq_len, dtype=torch.long, device=seq.device)
+        position_ids = position_ids.unsqueeze(0).expand_as(seq)
+        position_embeds = self.position_embedding(position_ids)
+        seq_codes += position_embeds
 
     # Reshape the seq_codes tensor from (batch_size, seq_len, hidden_size) to (batch_size * seq_len, hidden_size)
-    seq_codes = seq_codes.view(-1, self.hidden_size)
+        seq_codes = seq_codes.view(-1, self.hidden_size)
 
     # Use the Sinkhorn Transformer to encode the sequence
-    seq_codes = self.trm_encoder(seq_codes)
+        seq_codes = self.trm_encoder(seq_codes)
 
     # Reshape the seq_codes tensor back to (batch_size, seq_len, hidden_size)
-    seq_codes = seq_codes.view(-1, seq_len, self.hidden_size)
+        seq_codes = seq_codes.view(-1, seq_len, self.hidden_size)
 
     # Re-assign the learned codes
-    if self.index_assignment_flag:
-        assigned_codes, assigned_indices, num_fake_indices = self._assign_codes(seq_codes.detach())
-        assigned_codes = assigned_codes.to(seq.device)
-        assigned_indices = assigned_indices.to(seq.device)
-        num_fake_indices = num_fake_indices.to(seq.device)
+        if self.index_assignment_flag:
+            assigned_codes, assigned_indices, num_fake_indices = self._assign_codes(seq_codes.detach())
+            assigned_codes = assigned_codes.to(seq.device)
+            assigned_indices = assigned_indices.to(seq.device)
+            num_fake_indices = num_fake_indices.to(seq.device)
 
-        fake_idx = torch.randint(0, assigned_indices.size(0),
+            fake_idx = torch.randint(0, assigned_indices.size(0),
                                   size=(int(num_fake_indices),),
                                   device=assigned_indices.device)
-        fake_indices = torch.full((int(num_fake_indices),), -1, dtype=torch.long, device=assigned_indices.device)
-        fake_codes = torch.randn((int(num_fake_indices), self.hidden_size),
+            fake_indices = torch.full((int(num_fake_indices),), -1, dtype=torch.long, device=assigned_indices.device)
+            fake_codes = torch.randn((int(num_fake_indices), self.hidden_size),
                                  device=assigned_codes.device)
-        assigned_indices = torch.cat([assigned_indices, fake_indices], dim=0)
-        assigned_codes = torch.cat([assigned_codes, fake_codes], dim=0)
-        assigned_codes = assigned_codes[torch.argsort(assigned_indices)]
+            assigned_indices = torch.cat([assigned_indices, fake_indices], dim=0)
+            assigned_codes = torch.cat([assigned_codes, fake_codes], dim=0)
+            assigned_codes = assigned_codes[torch.argsort(assigned_indices)]
 
         # store reassigned codes and indices
-        self.reassigned_code_embedding = nn.Parameter(assigned_codes, requires_grad=False)
-    else:
-        assigned_codes = self.reassigned_code_embedding
+            self.reassigned_code_embedding = nn.Parameter(assigned_codes, requires_grad=False)
+        else:
+            assigned_codes = self.reassigned_code_embedding
 
     # Compute the logits and loss
-    logits = torch.matmul(seq_codes, assigned_codes.t())
-    logits /= self.temperature
+        logits = torch.matmul(seq_codes, assigned_codes.t())
+        logits /= self.temperature
 
-    if self.loss_type == 'CE':
-        loss = self.loss_fct(logits.view(-1, self.code_dim * (1 + self.code_cap)), seq.view(-1))
-    else:
-        raise NotImplementedError()
+        if self.loss_type == 'CE':
+            loss = self.loss_fct(logits.view(-1, self.code_dim * (1 + self.code_cap)), seq.view(-1))
+        else:
+            raise NotImplementedError()
 
-    return {'logits': logits, 'loss': loss}
+            return {'logits': logits, 'loss': loss}
 
 
-def forward(self, item_seq, item_seq_len):
-    batch_size, seq_len = item_seq.shape
+    def forward(self, item_seq, item_seq_len):
+         batch_size, seq_len = item_seq.shape
 
     # Generate position embeddings
-    pos_encodings = self.positional_encoding[:, :seq_len].unsqueeze(0).repeat(batch_size, 1, 1).to(item_seq.device)
+         pos_encodings = self.positional_encoding[:, :seq_len].unsqueeze(0).repeat(batch_size, 1, 1).to(item_seq.device)
 
     # Embed the item sequence using PQ codes
-    pq_code_seq = self.pq_codes[item_seq]  # Shape: (batch_size, seq_len, code_dim)
-    pq_code_seq = pq_code_seq.permute(0, 2, 1)  # Shape: (batch_size, code_dim, seq_len)
+         pq_code_seq = self.pq_codes[item_seq]  # Shape: (batch_size, seq_len, code_dim)
+         pq_code_seq = pq_code_seq.permute(0, 2, 1)  # Shape: (batch_size, code_dim, seq_len)
 
     # Reshape the PQ codes for the Sinkhorn Transformer
-    pq_code_seq = pq_code_seq.reshape(batch_size, self.num_heads, self.head_dim, seq_len)  # Shape: (batch_size, num_heads, head_dim, seq_len)
+         pq_code_seq = pq_code_seq.reshape(batch_size, self.num_heads, self.head_dim, seq_len)  # Shape: (batch_size, num_heads, head_dim, seq_len)
 
     # Apply the Sinkhorn Transformer
-    st_output = self.sinkhorn_transformer(pq_code_seq, pos_encodings)
+         st_output = self.sinkhorn_transformer(pq_code_seq, pos_encodings)
 
     # Flatten the output and apply normalization and dropout
-    st_output = st_output.reshape(batch_size, self.code_cap * self.code_dim)  # Shape: (batch_size, code_cap * code_dim)
-    st_output = self.LayerNorm(st_output)
-    st_output = self.dropout(st_output)
+         st_output = st_output.reshape(batch_size, self.code_cap * self.code_dim)  # Shape: (batch_size, code_cap * code_dim)
+         st_output = self.LayerNorm(st_output)
+         st_output = self.dropout(st_output)
 
     # Gather the output for the last item in each sequence
-    output = self.gather_indexes(st_output, item_seq_len - 1)
+         output = self.gather_indexes(st_output, item_seq_len - 1)
 
-    return output  # [B H]
+         return output  # [B H]
 
-trm_output = self.trm_encoder(input_emb, extended_attention_mask, output_all_encoded_layers=True)
-        output = trm_output[-1]
-        output = self.gather_indexes(output, item_seq_len - 1)
-        return output  # [B H]
+         trm_output = self.trm_encoder(input_emb, extended_attention_mask, output_all_encoded_layers=True)
+         output = trm_output[-1]
+         output = self.gather_indexes(output, item_seq_len - 1)
+         return output  # [B H]
 
-def calculate_item_emb(self):
+    def calculate_item_emb(self):
         if self.index_assignment_flag:
             pq_code_emb = F.embedding(self.pq_codes, self.reassigned_code_embedding, padding_idx=0).mean(dim=-2)
         else:
             pq_code_emb = self.pq_code_embedding(self.pq_codes).mean(dim=-2)
         return pq_code_emb  # [B H]
 
-def generate_fake_neg_item_emb(self, item_index):
+    def generate_fake_neg_item_emb(self, item_index):
         rand_idx = torch.randint_like(input=item_index, high=self.code_cap)
         # flatten pq codes
         base_id = (torch.arange(self.code_dim).to(item_index.device) * (self.code_cap + 1)).unsqueeze(0)
@@ -196,7 +195,7 @@ def generate_fake_neg_item_emb(self, item_index):
         fake_item_idx[0,:] = 0
         return self.pq_code_embedding(fake_item_idx).mean(dim=-2)
 
-def seq_item_contrastive_task(self, seq_output, same_pos_id, interaction):
+    def seq_item_contrastive_task(self, seq_output, same_pos_id, interaction):
         pos_id = interaction['item_id']
         pos_pq_code = self.pq_codes[pos_id]
         if self.index_assignment_flag:
@@ -220,7 +219,7 @@ def seq_item_contrastive_task(self, seq_output, same_pos_id, interaction):
         loss = -torch.log(pos_logits / (neg_logits + fake_logits))
         return loss.mean()
     
-def pretrain(self, interaction):
+    def pretrain(self, interaction):
         item_seq = interaction[self.ITEM_SEQ]
         item_seq_len = interaction[self.ITEM_SEQ_LEN]
         seq_output = self.forward(item_seq, item_seq_len)
@@ -233,7 +232,7 @@ def pretrain(self, interaction):
 
         return self.seq_item_contrastive_task(seq_output, same_pos_id, interaction)
     
-def calculate_loss(self, interaction):
+    def calculate_loss(self, interaction):
         if self.train_stage == 'pretrain':
             return self.pretrain(interaction)
         
@@ -257,10 +256,10 @@ def calculate_loss(self, interaction):
             
             loss = self.loss_fct(logits, pos_items)
             return loss
-def predict(self, interaction):
+    def predict(self, interaction):
         raise NotImplementedError()
 
-        def full_sort_predict(self, interaction):
+    def full_sort_predict(self, interaction):
         item_seq = interaction[self.ITEM_SEQ]
         item_seq_len = interaction[self.ITEM_SEQ_LEN]
         seq_output = self.forward(item_seq, item_seq_len)
