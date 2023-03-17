@@ -87,3 +87,61 @@ class VQRec(SequentialRecommender):
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
+            
+  
+  def forward(self, seq):
+    # PQ coding
+    seq_codes = self.pq_codes[seq].view(-1, self.code_cap)
+    seq_codes = torch.cat((seq_codes, torch.zeros(seq_codes.size(0), 1).to(seq_codes.device)), dim=-1).long()
+    seq_codes = seq_codes.view(-1)
+    seq_codes = self.pq_code_embedding(seq_codes)
+    seq_codes = seq_codes.view(-1, self.max_seq_length, self.hidden_size)
+
+    # Sinkhorn Transformer encoding
+    seq_len = seq.size(1)
+    position_ids = torch.arange(seq_len, dtype=torch.long, device=seq.device)
+    position_ids = position_ids.unsqueeze(0).expand_as(seq)
+    position_embeds = self.position_embedding(position_ids)
+    seq_codes += position_embeds
+
+    # Reshape the seq_codes tensor from (batch_size, seq_len, hidden_size) to (batch_size * seq_len, hidden_size)
+    seq_codes = seq_codes.view(-1, self.hidden_size)
+
+    # Use the Sinkhorn Transformer to encode the sequence
+    seq_codes = self.trm_encoder(seq_codes)
+
+    # Reshape the seq_codes tensor back to (batch_size, seq_len, hidden_size)
+    seq_codes = seq_codes.view(-1, seq_len, self.hidden_size)
+
+    # Re-assign the learned codes
+    if self.index_assignment_flag:
+        assigned_codes, assigned_indices, num_fake_indices = self._assign_codes(seq_codes.detach())
+        assigned_codes = assigned_codes.to(seq.device)
+        assigned_indices = assigned_indices.to(seq.device)
+        num_fake_indices = num_fake_indices.to(seq.device)
+
+        fake_idx = torch.randint(0, assigned_indices.size(0),
+                                  size=(int(num_fake_indices),),
+                                  device=assigned_indices.device)
+        fake_indices = torch.full((int(num_fake_indices),), -1, dtype=torch.long, device=assigned_indices.device)
+        fake_codes = torch.randn((int(num_fake_indices), self.hidden_size),
+                                 device=assigned_codes.device)
+        assigned_indices = torch.cat([assigned_indices, fake_indices], dim=0)
+        assigned_codes = torch.cat([assigned_codes, fake_codes], dim=0)
+        assigned_codes = assigned_codes[torch.argsort(assigned_indices)]
+
+        # store reassigned codes and indices
+        self.reassigned_code_embedding = nn.Parameter(assigned_codes, requires_grad=False)
+    else:
+        assigned_codes = self.reassigned_code_embedding
+
+    # Compute the logits and loss
+    logits = torch.matmul(seq_codes, assigned_codes.t())
+    logits /= self.temperature
+
+    if self.loss_type == 'CE':
+        loss = self.loss_fct(logits.view(-1, self.code_dim * (1 + self.code_cap)), seq.view(-1))
+    else:
+        raise NotImplementedError()
+
+    return {'logits': logits, 'loss': loss}
