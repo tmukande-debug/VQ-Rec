@@ -172,3 +172,103 @@ def forward(self, item_seq, item_seq_len):
     output = self.gather_indexes(st_output, item_seq_len - 1)
 
     return output  # [B H]
+
+trm_output = self.trm_encoder(input_emb, extended_attention_mask, output_all_encoded_layers=True)
+        output = trm_output[-1]
+        output = self.gather_indexes(output, item_seq_len - 1)
+        return output  # [B H]
+
+def calculate_item_emb(self):
+        if self.index_assignment_flag:
+            pq_code_emb = F.embedding(self.pq_codes, self.reassigned_code_embedding, padding_idx=0).mean(dim=-2)
+        else:
+            pq_code_emb = self.pq_code_embedding(self.pq_codes).mean(dim=-2)
+        return pq_code_emb  # [B H]
+
+def generate_fake_neg_item_emb(self, item_index):
+        rand_idx = torch.randint_like(input=item_index, high=self.code_cap)
+        # flatten pq codes
+        base_id = (torch.arange(self.code_dim).to(item_index.device) * (self.code_cap + 1)).unsqueeze(0)
+        rand_idx = rand_idx + base_id + 1
+        
+        mask = torch.bernoulli(torch.full_like(item_index, self.fake_idx_ratio, dtype=torch.float))
+        fake_item_idx = torch.where(mask > 0, rand_idx, item_index)
+        fake_item_idx[0,:] = 0
+        return self.pq_code_embedding(fake_item_idx).mean(dim=-2)
+
+def seq_item_contrastive_task(self, seq_output, same_pos_id, interaction):
+        pos_id = interaction['item_id']
+        pos_pq_code = self.pq_codes[pos_id]
+        if self.index_assignment_flag:
+            pos_items_emb = F.embedding(pos_pq_code, self.reassigned_code_embedding, padding_idx=0).mean(dim=-2)
+        else:
+            pos_items_emb = self.pq_code_embedding(pos_pq_code).mean(dim=-2)
+        pos_items_emb = F.normalize(pos_items_emb, dim=1)
+
+        pos_logits = (seq_output * pos_items_emb).sum(dim=1, keepdim=True) / self.temperature
+        pos_logits = torch.exp(pos_logits)
+
+        neg_logits = torch.matmul(seq_output, pos_items_emb.transpose(0, 1)) / self.temperature
+        neg_logits = torch.where(same_pos_id, torch.tensor([0], dtype=torch.float, device=same_pos_id.device), neg_logits)
+        neg_logits = torch.exp(neg_logits).sum(dim=1)
+
+        fake_item_emb = self.generate_fake_neg_item_emb(pos_pq_code)
+        fake_item_emb = F.normalize(fake_item_emb, dim=-1)
+        fake_logits = (seq_output * fake_item_emb).sum(dim=1, keepdim=True) / self.temperature
+        fake_logits = torch.exp(fake_logits)
+
+        loss = -torch.log(pos_logits / (neg_logits + fake_logits))
+        return loss.mean()
+    
+def pretrain(self, interaction):
+        item_seq = interaction[self.ITEM_SEQ]
+        item_seq_len = interaction[self.ITEM_SEQ_LEN]
+        seq_output = self.forward(item_seq, item_seq_len)
+        seq_output = F.normalize(seq_output, dim=1)
+
+        # Remove sequences with the same next item
+        pos_id = interaction['item_id']
+        same_pos_id = (pos_id.unsqueeze(1) == pos_id.unsqueeze(0))
+        same_pos_id = torch.logical_xor(same_pos_id, torch.eye(pos_id.shape[0], dtype=torch.bool, device=pos_id.device))
+
+        return self.seq_item_contrastive_task(seq_output, same_pos_id, interaction)
+    
+def calculate_loss(self, interaction):
+        if self.train_stage == 'pretrain':
+            return self.pretrain(interaction)
+        
+        item_seq = interaction[self.ITEM_SEQ]
+        item_seq_len = interaction[self.ITEM_SEQ_LEN]
+        seq_output = self.forward(item_seq, item_seq_len)
+        pos_items = interaction[self.POS_ITEM_ID]
+        if self.loss_type == 'BPR':
+            raise NotImplementedError()
+        else:  # self.loss_type = 'CE'
+            test_item_emb = self.calculate_item_emb()
+            
+            if self.temperature > 0:
+                seq_output = F.normalize(seq_output, dim=-1)
+                test_item_emb = F.normalize(test_item_emb, dim=-1)
+            
+            logits = torch.matmul(seq_output, test_item_emb.transpose(0, 1))
+            
+            if self.temperature > 0:
+                logits /= self.temperature
+            
+            loss = self.loss_fct(logits, pos_items)
+            return loss
+def predict(self, interaction):
+        raise NotImplementedError()
+
+        def full_sort_predict(self, interaction):
+        item_seq = interaction[self.ITEM_SEQ]
+        item_seq_len = interaction[self.ITEM_SEQ_LEN]
+        seq_output = self.forward(item_seq, item_seq_len)
+        test_items_emb = self.calculate_item_emb()
+        
+        if self.temperature > 0:
+            seq_output = F.normalize(seq_output, dim=-1)
+            test_items_emb = F.normalize(test_items_emb, dim=-1)
+        
+        scores = torch.matmul(seq_output, test_items_emb.transpose(0, 1))  # [B n_items]
+        return scores
