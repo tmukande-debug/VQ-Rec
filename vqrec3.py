@@ -1,42 +1,89 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from recbole.model.abstract_recommender import SequentialRecommender
+from recbole.model.layers import TransformerEncoder
 
+from sinkhorn_transformer import SinkhornTransformer
 
-class VQRec(nn.Module):
-    def __init__(self, vocab_size, emb_size, hidden_size, num_layers, dropout_rate):
-        super(VQRec, self).__init__()
+class VQRec(SequentialRecommender):
+    def __init__(self, config, dataset):
+        super().__init__(config, dataset)
 
-        self.embedding = nn.Embedding(vocab_size, emb_size, padding_idx=0)
-        self.gru = nn.GRU(emb_size, hidden_size, num_layers, dropout=dropout_rate, batch_first=True)
-        self.fc1 = nn.Linear(hidden_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, vocab_size)
+        # VQRec args
+        self.code_dim = config['code_dim']
+        self.code_cap = config['code_cap']
+        self.pq_codes = dataset.pq_codes
+        self.temperature = config['temperature']
+        self.index_assignment_flag = False
+        self.sinkhorn_iter = config['sinkhorn_iter']
+        self.fake_idx_ratio = config['fake_idx_ratio']
 
-        self.vocab_size = vocab_size
-        self.emb_size = emb_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.dropout_rate = dropout_rate
+        self.train_stage = config['train_stage']
+        assert self.train_stage in [
+            'pretrain', 'inductive_ft'
+        ], f'Unknown train stage: [{self.train_stage}]'
 
-    def forward(self, input_ids, input_lens, h_n=None):
-        input_embs = self.embedding(input_ids)
-        packed_input = nn.utils.rnn.pack_padded_sequence(input_embs, input_lens, batch_first=True, enforce_sorted=False)
+        # load parameters info
+        self.n_layers = config['n_layers']
+        self.n_heads = config['n_heads']
+        self.hidden_size = config['hidden_size']  # same as embedding_size
+        self.inner_size = config['inner_size']  # the dimensionality in feed-forward layer
+        self.hidden_dropout_prob = config['hidden_dropout_prob']
+        self.attn_dropout_prob = config['attn_dropout_prob']
+        self.hidden_act = config['hidden_act']
+        self.layer_norm_eps = config['layer_norm_eps']
 
-        packed_output, h_n = self.gru(packed_input, h_n)
+        self.initializer_range = config['initializer_range']
+        self.loss_type = config['loss_type']
 
-        output, _ = nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
-        output = F.relu(self.fc1(output))
-        logits = self.fc2(output)
+        # define layers and loss
+        self.pq_code_embedding = nn.Embedding(
+            self.code_dim * (1 + self.code_cap), self.hidden_size, padding_idx=0)
+        self.reassigned_code_embedding = None
 
-        return logits, h_n
+        self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
+        self.trm_encoder = SinkhornTransformer(
+            num_tokens=self.code_dim * (1 + self.code_cap),
+            dim=self.hidden_size,
+            depth=self.n_layers,
+            heads=self.n_heads,
+            ff_glu=True,
+            dim_head=None,
+            reversible=True,
+            ff_dropout=self.hidden_dropout_prob,
+            attn_dropout=self.attn_dropout_prob,
+            loss_type='CE',
+            num_patches=None,
+            row_normalization=True,
+            column_normalization=True,
+            sinkhorn_iter=self.sinkhorn_iter,
+            n_sortcut=None,
+            learn_unary=None,
+            hard_k=None
+        )
 
-    def calculate_loss(self, interaction):
-        input_ids = interaction["input_ids"]
-        target_ids = interaction["target_ids"]
-        input_lens = interaction["input_lens"]
+        self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
 
-        logits, _ = self.forward(input_ids, input_lens)
+        self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+        self.dropout = nn.Dropout(self.hidden_dropout_prob)
 
-        loss = F.cross_entropy(logits.view(-1, self.vocab_size), target_ids.view(-1))
+        if self.loss_type == 'BPR':
+            raise NotImplementedError()
+        elif self.loss_type == 'CE':
+            self.loss_fct = nn.CrossEntropyLoss()
+        else:
+            raise NotImplementedError("Make sure 'loss_type' in ['CE']!")
 
-        return loss
+        # parameters initialization
+        self.apply(self._init_weights)
+
+  def _init_weights(self, module):
+        """ Initialize the weights """
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            # Slightly different from the TF version which uses truncated_normal for initialization
+            # cf https://github.com/pytorch/pytorch/pull/5617
+            module.weight.data.normal_(mean=0.0, std=self.initializer_range)
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
