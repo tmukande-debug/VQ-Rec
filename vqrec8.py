@@ -6,6 +6,8 @@ from recbole.model.layers import TransformerEncoder
 from sinkhorn_transformer import Autopadder
 from sinkhorn_transformer import SinkhornTransformer
 
+#Lehmer codes, hungarian
+
 def log(t, eps = 1e-6):
     return torch.log(t + eps)
 
