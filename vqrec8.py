@@ -15,77 +15,28 @@ Permutation - an array of integers. For the given interval, the array has to con
 for the interval and each of the number has to appear only once.
 GitHub: https://github.com/mateuszchudyk/lehmer
 """
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from recbole.model.layers import TransformerEncoder
+from recbole.model.abstract_recommender import SequentialRecommender
 
-__author__ = "Mateusz Chudyk"
-__license__ = "MIT"
+def lehmer_encode(t, n):
+    quotient = t.clone()
+    res = []
+    for i in range(n, 0, -1):
+        r = quotient % i
+        res.append(r)
+        quotient = (quotient - r) // i
+    return torch.tensor(list(reversed(res)), dtype=t.dtype, device=t.device)
 
-def static_var(varname, value):
-    def decorate(func):
-        setattr(func, varname, value)
-        return func
-    return decorate
-
-@static_var("lut", [1])
-def factorial(n):
-    while n >= len(factorial.lut):
-        factorial.lut.append(factorial.lut[-1] * len(factorial.lut))
-    return factorial.lut[n]
-
-def encode(permutation):
-    """Return Lehmer Code of the given permutation.
-    """
-    def permutation_is_valid(permutation):
-        if not permutation:
-            return False
-
-        minimum = min(permutation)
-        maximum = max(permutation)
-
-        used = [0] * (maximum - minimum + 1)
-        for i in permutation:
-            used[i - minimum] += 1
-
-        if min(used) == 1 and max(used) == 1:
-            return True
-        else:
-            return False
-
-    def count_lesser(i, permutation):
-        return sum(it < permutation[i] for it in permutation[i + 1:])
-    
-    def parial_result(i, permutation):
-        return count_lesser(i, permutation) * factorial(len(permutation) - 1 - i)
-
-    if not permutation_is_valid(permutation):
-        return False
-    
-    return sum(parial_result(i, permutation) for i in range(0, len(permutation)))
-
-def decode(length, lehmer):
-    """Return permutation for the given Lehmer Code and permutation length. Result permutation contains
-    number from 0 to length-1.
-    """
-    result = [(lehmer % factorial(length - i)) // factorial(length - 1 - i) for i in range(length)]
-    used = [False] * length
-    for i in range(length):
-        counter = 0
-        for j in range(length):
-            if not used[j]:
-                counter += 1
-            if counter == result[i] + 1:
-                result[i] = j
-                used[j] = True
-                break
-    return result
-
-def log(t, eps = 1e-6):
-    return torch.log(t + eps)
-
-
-def sample_gumbel(shape, device, dtype, eps=1e-6):
-    u = torch.empty(shape, device=device, dtype=dtype).uniform_(0, 1)
-    return -log(-log(u, eps), eps)
-
+def lehmer_decode(code):
+    n = len(code)
+    permutation = torch.zeros(n, dtype=code.dtype, device=code.device)
+    for i, c in enumerate(code):
+        greater = (permutation >= c).float()
+        permutation = permutation + greater
+    return permutation
 
 def sinkhorn_sorting_operator(r, n_iters=8):
     n = r.shape[1]
@@ -94,12 +45,26 @@ def sinkhorn_sorting_operator(r, n_iters=8):
         r = r - torch.logsumexp(r, dim=1, keepdim=True)
     return torch.exp(r)
 
+def lehmer_sinkhorn(r, n_iters=8, temperature=0.7):
+    r = lehmer_encode(torch.argsort(torch.argsort(r, dim=-1), dim=-1), r.shape[-1]).float()
+    r = (r / temperature).floor().long()
+    return lehmer_decode(sinkhorn_sorting_operator(r, n_iters))
 
-def gumbel_sinkhorn(r, n_iters=8, temperature=0.7):
-    r = log(r)
-    gumbel = sample_gumbel(r.shape, r.device, r.dtype)
-    r = (r + gumbel) / temperature
-    return sinkhorn_sorting_operator(r, n_iters)
+def differentiable_topk(x, k, temperature=1.):
+    *_, n, dim = x.shape
+    topk_tensors = []
+
+    for i in range(k):
+        is_last = i == (k - 1)
+        values, indices = (x / temperature).softmax(dim=-1).topk(1, dim=-1)
+        topks = torch.zeros_like(x).scatter_(-1, indices, values)
+        topk_tensors.append(topks)
+        if not is_last:
+            x.scatter_(-1, indices, float('-inf'))
+
+    topks = torch.cat(topk_tensors, dim=-1)
+    return topks.reshape(*_, k *
+
 
 
 def differentiable_topk(x, k, temperature=1.):
@@ -194,7 +159,7 @@ class VQRec(SequentialRecommender):
             module.weight.data.fill_(1.0)
     
     def code_projection(self):
-        doubly_stochastic_matrix = gumbel_sinkhorn(torch.exp(self.trans_matrix), n_iters=self.sinkhorn_iter)
+        doubly_stochastic_matrix = lehmer_sinkhorn(torch.exp(self.trans_matrix), n_iters=self.sinkhorn_iter)
         #trans = differentiable_topk(doubly_stochastic_matrix.reshape(-1, self.code_cap + 1), 1)
         trans = differentiable_topk(doubly_stochastic_matrix.reshape(-1, self.code_cap + 1, self.code_cap + 1), self.code_cap).view(self.code_dim, -1)
         trans = torch.ceil(trans.reshape(-1, self.code_cap + 1, self.code_cap + 1))
