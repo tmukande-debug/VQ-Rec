@@ -9,6 +9,7 @@ from sinkhorn_transformer import SinkhornTransformer
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
 #routing-transformer, reformer
+#vector-quantize-pytorch- lucidrains
 
 """Implementation of Lehmer Code.
 Permutation - an array of integers. For the given interval, the array has to contains all numbers
