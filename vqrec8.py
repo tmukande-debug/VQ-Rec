@@ -8,6 +8,7 @@ from sinkhorn_transformer import SinkhornTransformer
 
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
+#routing-transformer, reformer
 
 def log(t, eps = 1e-6):
     return torch.log(t + eps)
