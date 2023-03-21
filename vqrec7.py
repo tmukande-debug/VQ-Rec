@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.layers import TransformerEncoder
-
-from sinkhorn_transformer import SinkhornTransformer
+from vector_quantize_pytorch import ResidualVQ
+#from sinkhorn_transformer import SinkhornTransformer
 
 def log(t, eps = 1e-6):
     return torch.log(t + eps)
@@ -75,27 +75,30 @@ class VQRec(SequentialRecommender):
 
         self.initializer_range = config['initializer_range']
         self.loss_type = config['loss_type']
+        
+        residual_vq = ResidualVQ(
+        dim = self.code_dim,
+        codebook_size = 256,
+        num_quantizers = 4,
+        kmeans_init = True,   # set to True
+        kmeans_iters = self.sinkhorn_iter     # number of kmeans iterations to calculate the centroids for the codebook on init
+         )
 
         # define layers and loss
         self.pq_code_embedding = nn.Embedding(
             self.code_dim * (1 + self.code_cap), self.hidden_size, padding_idx=0)
         self.reassigned_code_embedding = None
-
-        self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
-        self.trm_encoder = SinkhornTransformer(
-            #num_tokens=self.code_dim * (1 + self.code_cap),
-            dim=self.hidden_size,
-            depth=self.n_layers,
-            heads=self.n_heads,
-            ff_glu=True,
-            dim_head=None,
-            reversible=True,
-            ff_dropout=self.hidden_dropout_prob,
-            attn_dropout=self.attn_dropout_prob,
-            sinkhorn_iter=self.sinkhorn_iter,
-            n_sortcut=None
-        )
-
+        
+        self.trm_encoder = TransformerEncoder(
+            n_layers=self.n_layers,
+            n_heads=self.n_heads,
+            hidden_size=self.hidden_size,
+            inner_size=self.inner_size,
+            hidden_dropout_prob=self.hidden_dropout_prob,
+            attn_dropout_prob=self.attn_dropout_prob,
+            hidden_act=self.hidden_act,
+            layer_norm_eps=self.layer_norm_eps
+          )
         self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
 
         self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
