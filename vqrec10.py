@@ -67,18 +67,20 @@ class VQRec(SequentialRecommender):
         ], f'Unknown train stage: [{self.train_stage}]'
 
         # load parameters info
-        self.n_layers = config['n_layers']
-        self.n_heads = config['n_heads']
-        self.hidden_size = config['hidden_size']  # same as embedding_size
-        self.inner_size = config['inner_size']  # the dimensionality in feed-forward layer
+        self.num_tokens = config['num_tokens']
+        self.heads = config['heads']
+        self.window_size = config['window_size']
+        self.max_seq_len = config['max_seq_len']
         self.hidden_dropout_prob = config['hidden_dropout_prob']
+        self.causal = config['causal']
         self.attn_dropout_prob = config['attn_dropout_prob']
         self.hidden_act = config['hidden_act']
         self.layer_norm_eps = config['layer_norm_eps']
-
+     
         self.initializer_range = config['initializer_range']
         self.loss_type = config['loss_type']
         self.pooler = nn.Linear(config.hidden_size, config.hidden_size)
+        
         #self.codebook = nn.Parameter(torch.randn(num_embeddings, embedding_dim))
         # define layers and loss
         self.pq_code_embedding = nn.Embedding(
@@ -87,16 +89,16 @@ class VQRec(SequentialRecommender):
 
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
         self.trm_encoder = model = RoutingTransformerLM(
-           num_tokens = 300,
-           dim = 300,
-           heads = self.n_heads,
-           depth = 2,
-           window_size = 256,
-           max_seq_len = 8192,
-           causal = True
+           num_tokens = self.num_tokens,
+           dim = self.dim,
+           heads = self.heads,
+           depth = self.depth,
+           window_size = self.window_size,
+           max_seq_len = self.max_seq_len,
+           causal = self.causal
            )
 
-        #self.trm_encoder = AutoregressiveWrapper(self.trm_encoder)
+        self.trm_encoder = AutoregressiveWrapper(self.trm_encoder)
         self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
 
         self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
@@ -131,8 +133,6 @@ class VQRec(SequentialRecommender):
         return trans_embed
             
     def forward(self, input_emb, item_seq_len, extra_arg=None):
-
-       
         trm_output = self.trm_encoder(input_emb, output_all_encoded_layers=True)
         output = self.pooler(trm_output[0])
         if extra_arg is not None:
