@@ -182,6 +182,7 @@ class VQRec(SequentialRecommender):
         fake_logits = (seq_output * fake_item_emb).sum(dim=1, keepdim=True) / self.temperature
         fake_logits = torch.exp(fake_logits)
 
+        loss = self.trm_encoder(self, return_loss = True, randomly_truncate_sequence = True)
         loss = -torch.log(pos_logits / (neg_logits + fake_logits))
         return loss.mean()
     
