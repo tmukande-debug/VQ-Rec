@@ -1,9 +1,10 @@
-num_tokens: 2
+num_tokens: 20000
 dim: 256
-heads: 8,
+heads: 8
 depth: 12
-max_seq_len: 2048,
-bucket_size: 128,
+max_seq_len: 2048
+window_size: 256
+bucket_size: 128
 causal: True
 loss_type: 'CE'
 layer_norm_eps: 1e-12
