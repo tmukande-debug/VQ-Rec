@@ -5,21 +5,6 @@ from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.layers import TransformerEncoder
 from routing_transformer import RoutingTransformerLM, AutoregressiveWrapper
 
-model = RoutingTransformerLM(
-    num_tokens = 20000,
-    dim = 1024,
-    heads = 8,
-    depth = 12,
-    window_size = 256,
-    max_seq_len = 8192,
-    causal = True
-)
-
-model = AutoregressiveWrapper(model)
-
-x = torch.randint(0, 20000, (1, 8192))
-loss = model(x, return_loss = True, randomly_truncate_sequence = True) # (1, 8192, 20000)
-
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
 #routing-transformer, reformer
