@@ -1,10 +1,10 @@
-num_tokens: 20000
+num_tokens: 10
 dim: 256
 heads: 8
 depth: 12
 max_seq_len: 2048
-window_size: 256
-bucket_size: 128
+window_size: 512
+bucket_size: 512
 causal: True
 loss_type: 'CE'
 layer_norm_eps: 1e-12
@@ -25,6 +25,6 @@ plm_suffix: feat1CLS
 plm_size: 768
 sinkhorn_iter: 3
 reassign_steps: 5
-eval_batch_size: 1024
+eval_batch_size: 1
 
 fake_idx_ratio: 0.75
