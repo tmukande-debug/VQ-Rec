@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.layers import TransformerEncoder
-from routing_transformer import RoutingTransformerLM, AutoregressiveWrapper
+from routing_transformer import RoutingTransformer, AutoregressiveWrapper
 
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
@@ -79,6 +79,7 @@ class VQRec(SequentialRecommender):
         self.hidden_size = config['hidden_size']
         self.dim = config['dim']
         self.depth = config['depth']
+        self.n_local_attn_heads = config['n_local_attn_heads']
 
         self.initializer_range = config['initializer_range']
         self.loss_type = config['loss_type']
@@ -91,17 +92,18 @@ class VQRec(SequentialRecommender):
         self.reassigned_code_embedding = None
 
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
-        self.trm_encoder = model = RoutingTransformerLM(
-           num_tokens = self.num_tokens,
+        self.trm_encoder = model = RoutingTransformer(
+           #num_tokens = self.num_tokens,
            dim = self.dim,
            heads = self.heads,
            depth = self.depth,
            window_size = self.window_size,
            max_seq_len = self.max_seq_len,
-           causal = self.causal
+           n_local_attn_heads = self.n_local_attn_heads,
+           #causal = self.causal
            )
 
-        self.trm_encoder = AutoregressiveWrapper(self.trm_encoder)
+        #self.trm_encoder = AutoregressiveWrapper(self.trm_encoder)
         self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
 
         self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
@@ -241,3 +243,4 @@ class VQRec(SequentialRecommender):
         
         scores = torch.matmul(seq_output, test_items_emb.transpose(0, 1))  # [B n_items]
         return scores
+
