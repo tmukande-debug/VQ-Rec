@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from recbole.model.abstract_recommender import SequentialRecommender
-from recbole.model.layers import TransformerEncoder
+#from recbole.model.layers import TransformerEncoder
 from sinkhorn_transformer import SinkhornTransformerLM
-from sinkhorn_transformer import Autopadder
+#from sinkhorn_transformer import Autopadder
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
 #routing-transformer, reformer
@@ -101,11 +101,11 @@ class VQRec(SequentialRecommender):
            causal = self.causal
            )
 
-        self.trm_encoder = Autopadder(self.trm_encoder)
+        #self.trm_encoder = Autopadder(self.trm_encoder)
         self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
 
         self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.5)
 
         if self.loss_type == 'BPR':
             raise NotImplementedError()
