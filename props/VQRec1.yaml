@@ -14,11 +14,11 @@ neg_sampling: null
 scales: [5, 8, 40]
 MAX_ITEM_LIST_LENGTH: 50
 hyper_len: 6
-num_tokens: 10
+num_tokens: 20000
 dim: 256
 heads: 8
 depth: 12
-max_seq_len: 2048
+max_seq_len: 8192
 window_size: 512
 bucket_size: 512
 causal: True
