@@ -128,7 +128,8 @@ class VQRec(SequentialRecommender):
             module.weight.data.fill_(1.0)
     
     def code_projection(self):
-        doubly_stochastic_matrix = gumbel_sinkhorn(torch.exp(self.trans_matrix), n_iters=self.sinkhorn_iter)
+        doubly_stochastic_matrix = gumbel_sinkhorn(self.trans_matrix, n_iters=self.sinkhorn_iter)
+        #doubly_stochastic_matrix = gumbel_sinkhorn(torch.exp(self.trans_matrix), n_iters=self.sinkhorn_iter)
         trans = differentiable_topk(doubly_stochastic_matrix.reshape(-1, self.code_cap + 1), 1)
         trans = torch.ceil(trans.reshape(-1, self.code_cap + 1, self.code_cap + 1))
         raw_embed = self.pq_code_embedding.weight.reshape(self.code_dim, self.code_cap + 1, -1)
