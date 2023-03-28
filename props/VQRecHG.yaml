@@ -10,8 +10,8 @@ loss_type: 'CE'
 enable_hg: 1
 enable_ms: 1
 customized_eval: 1
-neg_sampling: null
-scales: [5, 8, 40]
+neg_sampling: 1
+scales: [50, 8, 40]
 MAX_ITEM_LIST_LENGTH: 49
 hyper_len: 6
 
@@ -33,6 +33,7 @@ plm_suffix: feat1CLS
 plm_size: 768
 sinkhorn_iter: 3
 reassign_steps: 5
-eval_batch_size: 1024
+eval_batch_size: 2
+train_batch_size: 2
 
 fake_idx_ratio: 0.75
