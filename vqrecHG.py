@@ -476,3 +476,86 @@ class VQRec(SequentialRecommender):
         
         scores = torch.matmul(seq_output, test_items_emb.transpose(0, 1))  # [B n_items]
         return scores
+
+    def build_Gs_unique(self, seqs, item_sim, group_len):
+      # Determine if GPU is available
+     if torch.cuda.is_available():
+      device = torch.device('cuda')
+     else:
+      device = torch.device('cpu')  
+     seqs = seqs.to(device)
+     Gs = []
+     n_objs = torch.count_nonzero(seqs, dim=1).tolist()
+     for batch_idx in range(seqs.shape[0]):
+            seq = seqs[batch_idx]
+            n_obj = n_objs[batch_idx]
+            seq = seq[:n_obj].cpu()
+            seq_list = seq.tolist()
+            unique = torch.unique(seq)
+            unique = unique.tolist()
+            n_unique = len(unique)
+
+            multibeh_group = seq.tolist()
+            for x in unique:
+                multibeh_group.remove(x)
+            multibeh_group = list(set(multibeh_group))
+            try:
+                multibeh_group.remove(self.mask_token)
+            except:
+                pass
+            
+            # l', l'
+            seq_item_sim = item_sim[batch_idx][:n_obj, :][:, :n_obj]            
+            # l', group_len
+            if group_len>n_obj:
+                metrics, sim_items = torch.topk(seq_item_sim, n_obj, sorted=False)
+            else:
+                metrics, sim_items = torch.topk(seq_item_sim, group_len, sorted=False)
+            # map indices to item tokens
+            #sim_items = seq[sim_items]
+            seq = seq.to(sim_items.device)
+            sim_items = seq[sim_items]
+
+            row_idx, masked_pos = torch.nonzero(sim_items==self.mask_token, as_tuple=True)
+            sim_items[row_idx, masked_pos] = seq[row_idx]
+            metrics[row_idx, masked_pos] = 1.0
+            # print(sim_items.detach().cpu().tolist())
+            multibeh_group = seq.tolist()
+            for x in unique:
+                multibeh_group.remove(x)
+            multibeh_group = list(set(multibeh_group))
+            try:
+                multibeh_group.remove(self.mask_token)
+            except:
+                pass
+            n_edge = n_unique+len(multibeh_group)
+            # hyper graph: n_obj, n_edge
+            H = torch.zeros((n_obj, n_edge), device=metrics.device)
+            normal_item_indexes = torch.nonzero((seq != self.mask_token), as_tuple=True)[0]
+            for idx in normal_item_indexes:
+                sim_items_i = sim_items[idx].tolist()
+                map_f = lambda x: unique.index(x)
+                unique_idx = list(map(map_f, sim_items_i))
+                H[idx, unique_idx] = metrics[idx]
+
+            for i, item in enumerate(seq_list):
+                ego_idx = unique.index(item)
+                H[i, ego_idx] = 1.0
+                # multi-behavior hyperedge
+                if item in multibeh_group:
+                    H[i, n_unique+multibeh_group.index(item)] = 1.0
+            # print(H.detach().cpu().tolist())
+            # W = torch.ones(n_edge, device=H.device)
+            # W = torch.diag(W)
+            DV = torch.sum(H, dim=1)
+            DE = torch.sum(H, dim=0)
+            invDE = torch.diag(torch.pow(DE, -1))
+            invDV = torch.diag(torch.pow(DV, -1))
+            # DV2 = torch.diag(torch.pow(DV, -0.5))
+            HT = H.t()
+            G = invDV.mm(H).mm(invDE).mm(HT)
+            # G = DV2.mm(H).mm(invDE).mm(HT).mm(DV2)
+            assert not torch.isnan(G).any()
+            Gs.append(G.to(seqs.device))
+            Gs_block_diag = torch.block_diag(*Gs)
+            return Gs_block_diag
