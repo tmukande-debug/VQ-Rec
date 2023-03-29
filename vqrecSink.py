@@ -81,7 +81,7 @@ class VQRec(SequentialRecommender):
         self.dim = config['dim']
         self.depth = config['depth']
         self.sinkhorn_iter = config['sinkhorn_iter']
-        self.n_sortcut = config'n_sortcut']
+        self.n_sortcut = config['n_sortcut']
         self.temperature = config['temperature']
 
         self.initializer_range = config['initializer_range']
