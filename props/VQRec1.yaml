@@ -1,4 +1,3 @@
-
 hidden_act: 'gelu'
 layer_norm_eps: 1e-12
 initializer_range: 0.02
@@ -10,11 +9,16 @@ depth: 12
 max_seq_len: 1024
 window_size: 512
 bucket_size: 512
-causal: True
+causal: False
 loss_type: 'CE'
 layer_norm_eps: 1e-12
 initializer_range: 0.02
 loss_type: 'CE'
+use_simple_sort_net: True
+sinkhorn_iter: 7     
+n_sortcut: 2       
+temperature: 0.75        
+non_permutative: False
 
 code_dim: 32
 code_cap: 256
