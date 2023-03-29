@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from recbole.model.abstract_recommender import SequentialRecommender
-#from recbole.model.layers import TransformerEncoder
 from sinkhorn_transformer import SinkhornTransformerLM
-#from sinkhorn_transformer import Autopadder
+from sinkhorn_transformer import Autopadder
+
+
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
 #routing-transformer, reformer
@@ -79,6 +80,9 @@ class VQRec(SequentialRecommender):
         self.hidden_size = config['hidden_size']
         self.dim = config['dim']
         self.depth = config['depth']
+        self.sinkhorn_iter = config['sinkhorn_iter']
+        self.n_sortcut = config'n_sortcut']
+        self.temperature = config['temperature']
 
         self.initializer_range = config['initializer_range']
         self.loss_type = config['loss_type']
@@ -98,14 +102,21 @@ class VQRec(SequentialRecommender):
            depth = self.depth,
            bucket_size = self.bucket_size,
            max_seq_len = self.max_seq_len,
-           causal = self.causal
+           causal = self.causal,
+           use_simple_sort_net = True, # turn off attention sort net
+           sinkhorn_iter = self.sinkhorn_iter,          # number of sinkhorn iterations - default is set at reported best in paper
+           n_sortcut = self.n_sortcut,              # use sortcut to reduce complexity to linear time
+           temperature = self.temperature ,        # gumbel temperature - default is set at reported best in paper
+           non_permutative = False,    # allow buckets of keys to be sorted to queries more than once
            )
-
-        #self.trm_encoder = Autopadder(self.trm_encoder)
-        self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
-
-        self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        self.dropout = nn.Dropout(0.5)
+        self.trm_encoder = AutoregressiveWrapper(self.trm_encoder)
+        self.trm_encoder = Autopadder(self.trm_encoder)
+        
+       # self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
+       # self.trm_encoder(self.trans_matrix)
+        
+        #self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+        #self.dropout = nn.Dropout(0.5)
 
         if self.loss_type == 'BPR':
             raise NotImplementedError()
