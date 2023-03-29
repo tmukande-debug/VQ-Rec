@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from recbole.model.abstract_recommender import SequentialRecommender
-from sinkhorn_transformer import SinkhornTransformerLM
+from sinkhorn_transformer import SinkhornTransformerLM, AutoregressiveWrapper
 from sinkhorn_transformer import Autopadder
 
 
@@ -110,10 +110,10 @@ class VQRec(SequentialRecommender):
            non_permutative = False,    # allow buckets of keys to be sorted to queries more than once
            )
         self.trm_encoder = AutoregressiveWrapper(self.trm_encoder)
-        self.trm_encoder = Autopadder(self.trm_encoder)
+        #self.trm_encoder = Autopadder(self.trm_encoder)
         
-       # self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
-       # self.trm_encoder(self.trans_matrix)
+        self.trans_matrix = nn.Parameter(torch.randn(self.code_dim, self.code_cap + 1, self.code_cap + 1))
+        #self.trm_encoder(self.trans_matrix)
         
         #self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         #self.dropout = nn.Dropout(0.5)
