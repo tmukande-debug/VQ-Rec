@@ -5,7 +5,7 @@ from recbole.model.abstract_recommender import SequentialRecommender
 from x_transformers import TransformerWrapper, Decoder, Encoder
 
 
-
+#gumbel softmax
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
 #routing-transformer, reformer
