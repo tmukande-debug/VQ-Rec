@@ -6,6 +6,7 @@ from x_transformers import TransformerWrapper, Decoder, Encoder
 
 
 #gumbel softmax
+#Randmax
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
 #routing-transformer, reformer
