@@ -1,0 +1,530 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/tmukande-debug/VQ-Rec/blob/master/VQ_Rec_Sinkipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "GO2PW4l9DB8X",
+        "outputId": "992f33a3-d8b1-4a59-f577-d7dccf91da02"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Cloning into 'VQ-Rec'...\n",
+            "remote: Enumerating objects: 546, done.\u001b[K\n",
+            "remote: Counting objects: 100% (95/95), done.\u001b[K\n",
+            "remote: Compressing objects: 100% (89/89), done.\u001b[K\n",
+            "remote: Total 546 (delta 51), reused 14 (delta 5), pack-reused 451\u001b[K\n",
+            "Receiving objects: 100% (546/546), 102.93 MiB | 18.36 MiB/s, done.\n",
+            "Resolving deltas: 100% (226/226), done.\n",
+            "Updating files: 100% (40/40), done.\n"
+          ]
+        }
+      ],
+      "source": [
+        "!git clone https://github.com/tmukande-debug/VQ-Rec"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ax4ULK2mk_2u",
+        "outputId": "eb35740a-7d7e-40cb-8ea8-00c09200476d"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Looking in indexes: https://pypi.org/simple, https://us-python.pkg.dev/colab-wheels/public/simple/\n",
+            "Collecting faiss-gpu==1.7.2\n",
+            "  Downloading faiss_gpu-1.7.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (85.5 MB)\n",
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m85.5/85.5 MB\u001b[0m \u001b[31m11.5 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hInstalling collected packages: faiss-gpu\n",
+            "Successfully installed faiss-gpu-1.7.2\n"
+          ]
+        }
+      ],
+      "source": [
+        "!pip install faiss-gpu==1.7.2"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "oMiK0AFUF6Qm",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "b678ef92-e359-4333-c288-8ee0845afa2e"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Looking in indexes: https://pypi.org/simple, https://us-python.pkg.dev/colab-wheels/public/simple/\n",
+            "Collecting recbole==1.0.1\n",
+            "  Downloading recbole-1.0.1-py3-none-any.whl (2.0 MB)\n",
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m2.0/2.0 MB\u001b[0m \u001b[31m7.1 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hRequirement already satisfied: scikit-learn>=0.23.2 in /usr/local/lib/python3.9/dist-packages (from recbole==1.0.1) (1.2.2)\n",
+            "Requirement already satisfied: pyyaml>=5.1.0 in /usr/local/lib/python3.9/dist-packages (from recbole==1.0.1) (6.0)\n",
+            "Requirement already satisfied: tqdm>=4.48.2 in /usr/local/lib/python3.9/dist-packages (from recbole==1.0.1) (4.65.0)\n",
+            "Requirement already satisfied: numpy>=1.17.2 in /usr/local/lib/python3.9/dist-packages (from recbole==1.0.1) (1.22.4)\n",
+            "Collecting colorama==0.4.4\n",
+            "  Downloading colorama-0.4.4-py2.py3-none-any.whl (16 kB)\n",
+            "Requirement already satisfied: torch>=1.7.0 in /usr/local/lib/python3.9/dist-packages (from recbole==1.0.1) (2.0.0+cu118)\n",
+            "Requirement already satisfied: pandas>=1.0.5 in /usr/local/lib/python3.9/dist-packages (from recbole==1.0.1) (1.5.3)\n",
+            "Collecting colorlog==4.7.2\n",
+            "  Downloading colorlog-4.7.2-py2.py3-none-any.whl (10 kB)\n",
+            "Requirement already satisfied: tensorboard>=2.5.0 in /usr/local/lib/python3.9/dist-packages (from recbole==1.0.1) (2.12.1)\n",
+            "Collecting scipy==1.6.0\n",
+            "  Downloading scipy-1.6.0-cp39-cp39-manylinux1_x86_64.whl (27.3 MB)\n",
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m27.3/27.3 MB\u001b[0m \u001b[31m58.7 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hRequirement already satisfied: python-dateutil>=2.8.1 in /usr/local/lib/python3.9/dist-packages (from pandas>=1.0.5->recbole==1.0.1) (2.8.2)\n",
+            "Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.9/dist-packages (from pandas>=1.0.5->recbole==1.0.1) (2022.7.1)\n",
+            "Requirement already satisfied: threadpoolctl>=2.0.0 in /usr/local/lib/python3.9/dist-packages (from scikit-learn>=0.23.2->recbole==1.0.1) (3.1.0)\n",
+            "Requirement already satisfied: joblib>=1.1.1 in /usr/local/lib/python3.9/dist-packages (from scikit-learn>=0.23.2->recbole==1.0.1) (1.2.0)\n",
+            "Requirement already satisfied: grpcio>=1.48.2 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (1.53.0)\n",
+            "Requirement already satisfied: requests<3,>=2.21.0 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (2.27.1)\n",
+            "Requirement already satisfied: tensorboard-plugin-wit>=1.6.0 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (1.8.1)\n",
+            "Requirement already satisfied: tensorboard-data-server<0.8.0,>=0.7.0 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (0.7.0)\n",
+            "Requirement already satisfied: protobuf>=3.19.6 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (3.20.3)\n",
+            "Requirement already satisfied: wheel>=0.26 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (0.40.0)\n",
+            "Requirement already satisfied: google-auth-oauthlib<1.1,>=0.5 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (1.0.0)\n",
+            "Requirement already satisfied: werkzeug>=1.0.1 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (2.2.3)\n",
+            "Requirement already satisfied: setuptools>=41.0.0 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (67.6.1)\n",
+            "Requirement already satisfied: absl-py>=0.4 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (1.4.0)\n",
+            "Requirement already satisfied: google-auth<3,>=1.6.3 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (2.17.2)\n",
+            "Requirement already satisfied: markdown>=2.6.8 in /usr/local/lib/python3.9/dist-packages (from tensorboard>=2.5.0->recbole==1.0.1) (3.4.3)\n",
+            "Requirement already satisfied: typing-extensions in /usr/local/lib/python3.9/dist-packages (from torch>=1.7.0->recbole==1.0.1) (4.5.0)\n",
+            "Requirement already satisfied: networkx in /usr/local/lib/python3.9/dist-packages (from torch>=1.7.0->recbole==1.0.1) (3.1)\n",
+            "Requirement already satisfied: triton==2.0.0 in /usr/local/lib/python3.9/dist-packages (from torch>=1.7.0->recbole==1.0.1) (2.0.0)\n",
+            "Requirement already satisfied: jinja2 in /usr/local/lib/python3.9/dist-packages (from torch>=1.7.0->recbole==1.0.1) (3.1.2)\n",
+            "Requirement already satisfied: sympy in /usr/local/lib/python3.9/dist-packages (from torch>=1.7.0->recbole==1.0.1) (1.11.1)\n",
+            "Requirement already satisfied: filelock in /usr/local/lib/python3.9/dist-packages (from torch>=1.7.0->recbole==1.0.1) (3.11.0)\n",
+            "Requirement already satisfied: lit in /usr/local/lib/python3.9/dist-packages (from triton==2.0.0->torch>=1.7.0->recbole==1.0.1) (16.0.1)\n",
+            "Requirement already satisfied: cmake in /usr/local/lib/python3.9/dist-packages (from triton==2.0.0->torch>=1.7.0->recbole==1.0.1) (3.25.2)\n",
+            "Requirement already satisfied: rsa<5,>=3.1.4 in /usr/local/lib/python3.9/dist-packages (from google-auth<3,>=1.6.3->tensorboard>=2.5.0->recbole==1.0.1) (4.9)\n",
+            "Requirement already satisfied: cachetools<6.0,>=2.0.0 in /usr/local/lib/python3.9/dist-packages (from google-auth<3,>=1.6.3->tensorboard>=2.5.0->recbole==1.0.1) (5.3.0)\n",
+            "Requirement already satisfied: six>=1.9.0 in /usr/local/lib/python3.9/dist-packages (from google-auth<3,>=1.6.3->tensorboard>=2.5.0->recbole==1.0.1) (1.16.0)\n",
+            "Requirement already satisfied: pyasn1-modules>=0.2.1 in /usr/local/lib/python3.9/dist-packages (from google-auth<3,>=1.6.3->tensorboard>=2.5.0->recbole==1.0.1) (0.2.8)\n",
+            "Requirement already satisfied: requests-oauthlib>=0.7.0 in /usr/local/lib/python3.9/dist-packages (from google-auth-oauthlib<1.1,>=0.5->tensorboard>=2.5.0->recbole==1.0.1) (1.3.1)\n",
+            "Requirement already satisfied: importlib-metadata>=4.4 in /usr/local/lib/python3.9/dist-packages (from markdown>=2.6.8->tensorboard>=2.5.0->recbole==1.0.1) (6.3.0)\n",
+            "Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.9/dist-packages (from requests<3,>=2.21.0->tensorboard>=2.5.0->recbole==1.0.1) (3.4)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.9/dist-packages (from requests<3,>=2.21.0->tensorboard>=2.5.0->recbole==1.0.1) (2022.12.7)\n",
+            "Requirement already satisfied: charset-normalizer~=2.0.0 in /usr/local/lib/python3.9/dist-packages (from requests<3,>=2.21.0->tensorboard>=2.5.0->recbole==1.0.1) (2.0.12)\n",
+            "Requirement already satisfied: urllib3<1.27,>=1.21.1 in /usr/local/lib/python3.9/dist-packages (from requests<3,>=2.21.0->tensorboard>=2.5.0->recbole==1.0.1) (1.26.15)\n",
+            "Requirement already satisfied: MarkupSafe>=2.1.1 in /usr/local/lib/python3.9/dist-packages (from werkzeug>=1.0.1->tensorboard>=2.5.0->recbole==1.0.1) (2.1.2)\n",
+            "Requirement already satisfied: mpmath>=0.19 in /usr/local/lib/python3.9/dist-packages (from sympy->torch>=1.7.0->recbole==1.0.1) (1.3.0)\n",
+            "Requirement already satisfied: zipp>=0.5 in /usr/local/lib/python3.9/dist-packages (from importlib-metadata>=4.4->markdown>=2.6.8->tensorboard>=2.5.0->recbole==1.0.1) (3.15.0)\n",
+            "Requirement already satisfied: pyasn1<0.5.0,>=0.4.6 in /usr/local/lib/python3.9/dist-packages (from pyasn1-modules>=0.2.1->google-auth<3,>=1.6.3->tensorboard>=2.5.0->recbole==1.0.1) (0.4.8)\n",
+            "Requirement already satisfied: oauthlib>=3.0.0 in /usr/local/lib/python3.9/dist-packages (from requests-oauthlib>=0.7.0->google-auth-oauthlib<1.1,>=0.5->tensorboard>=2.5.0->recbole==1.0.1) (3.2.2)\n",
+            "Installing collected packages: colorlog, scipy, colorama, recbole\n",
+            "  Attempting uninstall: scipy\n",
+            "    Found existing installation: scipy 1.10.1\n",
+            "    Uninstalling scipy-1.10.1:\n",
+            "      Successfully uninstalled scipy-1.10.1\n",
+            "\u001b[31mERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n",
+            "jaxlib 0.4.7+cuda11.cudnn86 requires scipy>=1.7, but you have scipy 1.6.0 which is incompatible.\n",
+            "jax 0.4.8 requires scipy>=1.7, but you have scipy 1.6.0 which is incompatible.\n",
+            "gensim 4.3.1 requires scipy>=1.7.0, but you have scipy 1.6.0 which is incompatible.\n",
+            "arviz 0.15.1 requires scipy>=1.8.0, but you have scipy 1.6.0 which is incompatible.\u001b[0m\u001b[31m\n",
+            "\u001b[0mSuccessfully installed colorama-0.4.4 colorlog-4.7.2 recbole-1.0.1 scipy-1.6.0\n"
+          ]
+        }
+      ],
+      "source": [
+        "!pip install recbole==1.0.1"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "CzX2bZJdrAJi",
+        "outputId": "ad2a6598-b6ae-4324-842d-a23f6d6f328d"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Looking in indexes: https://pypi.org/simple, https://us-python.pkg.dev/colab-wheels/public/simple/\n",
+            "Collecting sinkhorn_transformer\n",
+            "  Downloading sinkhorn_transformer-0.11.4-py3-none-any.whl (14 kB)\n",
+            "Collecting local-attention\n",
+            "  Downloading local_attention-1.8.5-py3-none-any.whl (8.1 kB)\n",
+            "Requirement already satisfied: torch in /usr/local/lib/python3.9/dist-packages (from sinkhorn_transformer) (2.0.0+cu118)\n",
+            "Collecting product-key-memory\n",
+            "  Downloading product_key_memory-0.1.10.tar.gz (3.5 kB)\n",
+            "  Preparing metadata (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "Collecting axial-positional-embedding>=0.1.0\n",
+            "  Downloading axial_positional_embedding-0.2.1.tar.gz (2.6 kB)\n",
+            "  Preparing metadata (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "Collecting einops>=0.6.0\n",
+            "  Downloading einops-0.6.0-py3-none-any.whl (41 kB)\n",
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m41.6/41.6 kB\u001b[0m \u001b[31m6.1 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hRequirement already satisfied: networkx in /usr/local/lib/python3.9/dist-packages (from torch->sinkhorn_transformer) (3.1)\n",
+            "Requirement already satisfied: triton==2.0.0 in /usr/local/lib/python3.9/dist-packages (from torch->sinkhorn_transformer) (2.0.0)\n",
+            "Requirement already satisfied: sympy in /usr/local/lib/python3.9/dist-packages (from torch->sinkhorn_transformer) (1.11.1)\n",
+            "Requirement already satisfied: typing-extensions in /usr/local/lib/python3.9/dist-packages (from torch->sinkhorn_transformer) (4.5.0)\n",
+            "Requirement already satisfied: jinja2 in /usr/local/lib/python3.9/dist-packages (from torch->sinkhorn_transformer) (3.1.2)\n",
+            "Requirement already satisfied: filelock in /usr/local/lib/python3.9/dist-packages (from torch->sinkhorn_transformer) (3.11.0)\n",
+            "Requirement already satisfied: cmake in /usr/local/lib/python3.9/dist-packages (from triton==2.0.0->torch->sinkhorn_transformer) (3.25.2)\n",
+            "Requirement already satisfied: lit in /usr/local/lib/python3.9/dist-packages (from triton==2.0.0->torch->sinkhorn_transformer) (16.0.1)\n",
+            "Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.9/dist-packages (from jinja2->torch->sinkhorn_transformer) (2.1.2)\n",
+            "Requirement already satisfied: mpmath>=0.19 in /usr/local/lib/python3.9/dist-packages (from sympy->torch->sinkhorn_transformer) (1.3.0)\n",
+            "Building wheels for collected packages: axial-positional-embedding, product-key-memory\n",
+            "  Building wheel for axial-positional-embedding (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for axial-positional-embedding: filename=axial_positional_embedding-0.2.1-py3-none-any.whl size=2901 sha256=08ad884cda9bafebdb21193f9403c4ae5d8b408e0166d5f58b4b3af6f4b35290\n",
+            "  Stored in directory: /root/.cache/pip/wheels/e9/e0/51/fec72c3ac576d0559b7b3a328ec5dcbac4120cca74be9e49fc\n",
+            "  Building wheel for product-key-memory (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for product-key-memory: filename=product_key_memory-0.1.10-py3-none-any.whl size=3068 sha256=1a41d6b4953f0b2cfccb3a481be4bda3ac627278e0f854073cc000e4e8a2524b\n",
+            "  Stored in directory: /root/.cache/pip/wheels/76/32/7e/d987c5136182f35d70de6f817578df1540651a9d878833a2cb\n",
+            "Successfully built axial-positional-embedding product-key-memory\n",
+            "Installing collected packages: einops, product-key-memory, local-attention, axial-positional-embedding, sinkhorn_transformer\n",
+            "Successfully installed axial-positional-embedding-0.2.1 einops-0.6.0 local-attention-1.8.5 product-key-memory-0.1.10 sinkhorn_transformer-0.11.4\n"
+          ]
+        }
+      ],
+      "source": [
+        "! pip install sinkhorn_transformer"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113"
+      ],
+      "metadata": {
+        "id": "xVGj2Kvautzj"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "bzDVDYdFHd-u",
+        "outputId": "6f3a5c5f-65a2-4ab1-a14f-6082b15424e2"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "/content/VQ-Rec\n"
+          ]
+        }
+      ],
+      "source": [
+        "%cd VQ-Rec/"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "1faR_WsnLgSo",
+        "outputId": "0b5d86c9-f2f0-4637-9ac2-5b24e18d5cc1"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "2023-04-13 21:04:29.249726: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.\n",
+            "To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
+            "2023-04-13 21:04:30.099849: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT\n",
+            "Namespace(m='VQRec', d='Scientific', p='pretrained/VQRec-FHCKM-300.pth', f='')\n",
+            "['props/VQRec.yaml', 'props/finetune.yaml']\n",
+            "command line args [-d Scientific -p pretrained/VQRec-FHCKM-300.pth] will not be used in RecBole\n",
+            "13 Apr 21:04    INFO  \n",
+            "\u001b[1;35mGeneral Hyper Parameters:\n",
+            "\u001b[0m\u001b[1;36mgpu_id\u001b[0m =\u001b[1;33m 0\u001b[0m\n",
+            "\u001b[1;36muse_gpu\u001b[0m =\u001b[1;33m True\u001b[0m\n",
+            "\u001b[1;36mseed\u001b[0m =\u001b[1;33m 2020\u001b[0m\n",
+            "\u001b[1;36mstate\u001b[0m =\u001b[1;33m INFO\u001b[0m\n",
+            "\u001b[1;36mreproducibility\u001b[0m =\u001b[1;33m True\u001b[0m\n",
+            "\u001b[1;36mdata_path\u001b[0m =\u001b[1;33m dataset/downstream/Scientific\u001b[0m\n",
+            "\u001b[1;36mcheckpoint_dir\u001b[0m =\u001b[1;33m saved\u001b[0m\n",
+            "\u001b[1;36mshow_progress\u001b[0m =\u001b[1;33m True\u001b[0m\n",
+            "\u001b[1;36msave_dataset\u001b[0m =\u001b[1;33m False\u001b[0m\n",
+            "\u001b[1;36mdataset_save_path\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36msave_dataloaders\u001b[0m =\u001b[1;33m False\u001b[0m\n",
+            "\u001b[1;36mdataloaders_save_path\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mlog_wandb\u001b[0m =\u001b[1;33m False\u001b[0m\n",
+            "\n",
+            "\u001b[1;35mTraining Hyper Parameters:\n",
+            "\u001b[0m\u001b[1;36mepochs\u001b[0m =\u001b[1;33m 300\u001b[0m\n",
+            "\u001b[1;36mtrain_batch_size\u001b[0m =\u001b[1;33m 2048\u001b[0m\n",
+            "\u001b[1;36mlearner\u001b[0m =\u001b[1;33m adam\u001b[0m\n",
+            "\u001b[1;36mlearning_rate\u001b[0m =\u001b[1;33m 0.003\u001b[0m\n",
+            "\u001b[1;36mneg_sampling\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36meval_step\u001b[0m =\u001b[1;33m 1\u001b[0m\n",
+            "\u001b[1;36mstopping_step\u001b[0m =\u001b[1;33m 10\u001b[0m\n",
+            "\u001b[1;36mclip_grad_norm\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mweight_decay\u001b[0m =\u001b[1;33m 0.0\u001b[0m\n",
+            "\u001b[1;36mloss_decimal_place\u001b[0m =\u001b[1;33m 4\u001b[0m\n",
+            "\n",
+            "\u001b[1;35mEvaluation Hyper Parameters:\n",
+            "\u001b[0m\u001b[1;36meval_args\u001b[0m =\u001b[1;33m {'split': {'LS': 'valid_and_test'}, 'order': 'TO', 'mode': 'full', 'group_by': 'user'}\u001b[0m\n",
+            "\u001b[1;36mrepeatable\u001b[0m =\u001b[1;33m True\u001b[0m\n",
+            "\u001b[1;36mmetrics\u001b[0m =\u001b[1;33m ['HIT', 'NDCG']\u001b[0m\n",
+            "\u001b[1;36mtopk\u001b[0m =\u001b[1;33m [10, 50]\u001b[0m\n",
+            "\u001b[1;36mvalid_metric\u001b[0m =\u001b[1;33m NDCG@10\u001b[0m\n",
+            "\u001b[1;36mvalid_metric_bigger\u001b[0m =\u001b[1;33m True\u001b[0m\n",
+            "\u001b[1;36meval_batch_size\u001b[0m =\u001b[1;33m 1024\u001b[0m\n",
+            "\u001b[1;36mmetric_decimal_place\u001b[0m =\u001b[1;33m 4\u001b[0m\n",
+            "\n",
+            "\u001b[1;35mDataset Hyper Parameters:\n",
+            "\u001b[0m\u001b[1;36mfield_separator\u001b[0m =\u001b[1;33m \t\u001b[0m\n",
+            "\u001b[1;36mseq_separator\u001b[0m =\u001b[1;33m  \u001b[0m\n",
+            "\u001b[1;36mUSER_ID_FIELD\u001b[0m =\u001b[1;33m user_id\u001b[0m\n",
+            "\u001b[1;36mITEM_ID_FIELD\u001b[0m =\u001b[1;33m item_id\u001b[0m\n",
+            "\u001b[1;36mRATING_FIELD\u001b[0m =\u001b[1;33m rating\u001b[0m\n",
+            "\u001b[1;36mTIME_FIELD\u001b[0m =\u001b[1;33m timestamp\u001b[0m\n",
+            "\u001b[1;36mseq_len\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mLABEL_FIELD\u001b[0m =\u001b[1;33m label\u001b[0m\n",
+            "\u001b[1;36mthreshold\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mNEG_PREFIX\u001b[0m =\u001b[1;33m neg_\u001b[0m\n",
+            "\u001b[1;36mload_col\u001b[0m =\u001b[1;33m {'inter': ['user_id', 'item_id_list', 'item_id']}\u001b[0m\n",
+            "\u001b[1;36munload_col\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36munused_col\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36madditional_feat_suffix\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mrm_dup_inter\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mval_interval\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mfilter_inter_by_user_or_item\u001b[0m =\u001b[1;33m True\u001b[0m\n",
+            "\u001b[1;36muser_inter_num_interval\u001b[0m =\u001b[1;33m [0,inf)\u001b[0m\n",
+            "\u001b[1;36mitem_inter_num_interval\u001b[0m =\u001b[1;33m [0,inf)\u001b[0m\n",
+            "\u001b[1;36malias_of_user_id\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36malias_of_item_id\u001b[0m =\u001b[1;33m ['item_id_list']\u001b[0m\n",
+            "\u001b[1;36malias_of_entity_id\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36malias_of_relation_id\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mpreload_weight\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mnormalize_field\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mnormalize_all\u001b[0m =\u001b[1;33m None\u001b[0m\n",
+            "\u001b[1;36mITEM_LIST_LENGTH_FIELD\u001b[0m =\u001b[1;33m item_length\u001b[0m\n",
+            "\u001b[1;36mLIST_SUFFIX\u001b[0m =\u001b[1;33m _list\u001b[0m\n",
+            "\u001b[1;36mMAX_ITEM_LIST_LENGTH\u001b[0m =\u001b[1;33m 50\u001b[0m\n",
+            "\u001b[1;36mPOSITION_FIELD\u001b[0m =\u001b[1;33m position_id\u001b[0m\n",
+            "\u001b[1;36mHEAD_ENTITY_ID_FIELD\u001b[0m =\u001b[1;33m head_id\u001b[0m\n",
+            "\u001b[1;36mTAIL_ENTITY_ID_FIELD\u001b[0m =\u001b[1;33m tail_id\u001b[0m\n",
+            "\u001b[1;36mRELATION_ID_FIELD\u001b[0m =\u001b[1;33m relation_id\u001b[0m\n",
+            "\u001b[1;36mENTITY_ID_FIELD\u001b[0m =\u001b[1;33m entity_id\u001b[0m\n",
+            "\u001b[1;36mbenchmark_filename\u001b[0m =\u001b[1;33m ['train', 'valid', 'test']\u001b[0m\n",
+            "\n",
+            "\u001b[1;35mOther Hyper Parameters: \n",
+            "\u001b[0m\u001b[1;36mwandb_project\u001b[0m = \u001b[1;33mrecbole\u001b[0m\n",
+            "\u001b[1;36mrequire_pow\u001b[0m = \u001b[1;33mFalse\u001b[0m\n",
+            "\u001b[1;36mMODEL_TYPE\u001b[0m = \u001b[1;33mModelType.SEQUENTIAL\u001b[0m\n",
+            "\u001b[1;36mhidden_act\u001b[0m = \u001b[1;33mgelu\u001b[0m\n",
+            "\u001b[1;36mlayer_norm_eps\u001b[0m = \u001b[1;33m1e-12\u001b[0m\n",
+            "\u001b[1;36minitializer_range\u001b[0m = \u001b[1;33m0.02\u001b[0m\n",
+            "\u001b[1;36mnum_tokens\u001b[0m = \u001b[1;33m8224\u001b[0m\n",
+            "\u001b[1;36mdim\u001b[0m = \u001b[1;33m768\u001b[0m\n",
+            "\u001b[1;36mheads\u001b[0m = \u001b[1;33m8\u001b[0m\n",
+            "\u001b[1;36mdepth\u001b[0m = \u001b[1;33m12\u001b[0m\n",
+            "\u001b[1;36mmax_seq_len\u001b[0m = \u001b[1;33m2048\u001b[0m\n",
+            "\u001b[1;36mwindow_size\u001b[0m = \u001b[1;33m1024\u001b[0m\n",
+            "\u001b[1;36mbucket_size\u001b[0m = \u001b[1;33m768\u001b[0m\n",
+            "\u001b[1;36mcausal\u001b[0m = \u001b[1;33mFalse\u001b[0m\n",
+            "\u001b[1;36mloss_type\u001b[0m = \u001b[1;33mCE\u001b[0m\n",
+            "\u001b[1;36muse_simple_sort_net\u001b[0m = \u001b[1;33mTrue\u001b[0m\n",
+            "\u001b[1;36msinkhorn_iter\u001b[0m = \u001b[1;33m3\u001b[0m\n",
+            "\u001b[1;36mn_sortcut\u001b[0m = \u001b[1;33m2\u001b[0m\n",
+            "\u001b[1;36mtemperature\u001b[0m = \u001b[1;33m0.07\u001b[0m\n",
+            "\u001b[1;36mnon_permutative\u001b[0m = \u001b[1;33mFalse\u001b[0m\n",
+            "\u001b[1;36mcode_dim\u001b[0m = \u001b[1;33m32\u001b[0m\n",
+            "\u001b[1;36mcode_cap\u001b[0m = \u001b[1;33m256\u001b[0m\n",
+            "\u001b[1;36mhidden_size\u001b[0m = \u001b[1;33m300\u001b[0m\n",
+            "\u001b[1;36mtrain_stage\u001b[0m = \u001b[1;33minductive_ft\u001b[0m\n",
+            "\u001b[1;36mindex_path\u001b[0m = \u001b[1;33mdataset/downstream\u001b[0m\n",
+            "\u001b[1;36mindex_pretrain_dataset\u001b[0m = \u001b[1;33mNone\u001b[0m\n",
+            "\u001b[1;36mindex_suffix\u001b[0m = \u001b[1;33mOPQ32,IVF1,PQ32x8.strict.index\u001b[0m\n",
+            "\u001b[1;36mplm_suffix\u001b[0m = \u001b[1;33mfeat1CLS\u001b[0m\n",
+            "\u001b[1;36mplm_size\u001b[0m = \u001b[1;33m768\u001b[0m\n",
+            "\u001b[1;36mreassign_steps\u001b[0m = \u001b[1;33m5\u001b[0m\n",
+            "\u001b[1;36mfake_idx_ratio\u001b[0m = \u001b[1;33m0.75\u001b[0m\n",
+            "\u001b[1;36mtransform\u001b[0m = \u001b[1;33mNone\u001b[0m\n",
+            "\u001b[1;36mMODEL_INPUT_TYPE\u001b[0m = \u001b[1;33mInputType.POINTWISE\u001b[0m\n",
+            "\u001b[1;36meval_type\u001b[0m = \u001b[1;33mEvaluatorType.RANKING\u001b[0m\n",
+            "\u001b[1;36mdevice\u001b[0m = \u001b[1;33mcuda\u001b[0m\n",
+            "\u001b[1;36mtrain_neg_sample_args\u001b[0m = \u001b[1;33m{'strategy': 'none'}\u001b[0m\n",
+            "\u001b[1;36meval_neg_sample_args\u001b[0m = \u001b[1;33m{'strategy': 'full', 'distribution': 'uniform'}\u001b[0m\n",
+            "\n",
+            "\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  Index path: dataset/downstream/Scientific/Scientific.OPQ32,IVF1,PQ32x8.strict.index\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  \u001b[1;35mScientific\u001b[0m\n",
+            "\u001b[1;34mThe number of users\u001b[0m: 8443\n",
+            "\u001b[1;34mAverage actions of users\u001b[0m: 6.039445628997868\n",
+            "\u001b[1;34mThe number of items\u001b[0m: 4386\n",
+            "\u001b[1;34mAverage actions of items\u001b[0m: 11.637753937457202\n",
+            "\u001b[1;34mThe number of inters\u001b[0m: 50985\n",
+            "\u001b[1;34mThe sparsity of the dataset\u001b[0m: 99.8623180504074%\n",
+            "\u001b[1;34mRemain Fields\u001b[0m: ['user_id', 'item_id_list', 'item_id', 'item_length']\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  \u001b[1;35m[Training]: \u001b[0m\u001b[1;36mtrain_batch_size\u001b[0m = \u001b[1;33m[2048]\u001b[0m\u001b[1;36m negative sampling\u001b[0m: \u001b[1;33m[None]\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  \u001b[1;35m[Evaluation]: \u001b[0m\u001b[1;36meval_batch_size\u001b[0m = \u001b[1;33m[1024]\u001b[0m\u001b[1;36m eval_args\u001b[0m: \u001b[1;33m[{'split': {'LS': 'valid_and_test'}, 'order': 'TO', 'mode': 'full', 'group_by': 'user'}]\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  Loading from pretrained/VQRec-FHCKM-300.pth\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  Transfer [FHCKM] -> [\u001b[1;35mScientific\u001b[0m\n",
+            "\u001b[1;34mThe number of users\u001b[0m: 8443\n",
+            "\u001b[1;34mAverage actions of users\u001b[0m: 6.039445628997868\n",
+            "\u001b[1;34mThe number of items\u001b[0m: 4386\n",
+            "\u001b[1;34mAverage actions of items\u001b[0m: 11.637753937457202\n",
+            "\u001b[1;34mThe number of inters\u001b[0m: 50985\n",
+            "\u001b[1;34mThe sparsity of the dataset\u001b[0m: 99.8623180504074%\n",
+            "\u001b[1;34mRemain Fields\u001b[0m: ['user_id', 'item_id_list', 'item_id', 'item_length']]\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  VQRec(\n",
+            "  (pooler): Linear(in_features=300, out_features=300, bias=True)\n",
+            "  (pq_code_embedding): Embedding(8224, 300, padding_idx=0)\n",
+            "  (position_embedding): Embedding(50, 300)\n",
+            "  (trm_encoder): AutoregressiveWrapper(\n",
+            "    (net): Autopadder(\n",
+            "      (net): SinkhornTransformerLM(\n",
+            "        (to_token_emb): Embedding(8224, 768)\n",
+            "        (axial_pos_emb): AxialPositionalEmbedding()\n",
+            "        (emb_dropout): Dropout(p=0.0, inplace=False)\n",
+            "        (sinkhorn_transformer): SinkhornTransformer(\n",
+            "          (layers): SequentialSequence(\n",
+            "            (layers): ModuleList(\n",
+            "              (0-11): 12 x ModuleList(\n",
+            "                (0): PreNorm(\n",
+            "                  (norm): LayerNorm((768,), eps=1e-05, elementwise_affine=True)\n",
+            "                  (fn): SinkhornSelfAttention(\n",
+            "                    (to_q): Linear(in_features=768, out_features=768, bias=False)\n",
+            "                    (to_kv): Linear(in_features=768, out_features=1536, bias=False)\n",
+            "                    (to_out): Linear(in_features=768, out_features=768, bias=True)\n",
+            "                    (local_attention): LocalAttention(\n",
+            "                      (dropout): Dropout(p=0.0, inplace=False)\n",
+            "                    )\n",
+            "                    (sinkhorn_attention): SinkhornAttention(\n",
+            "                      (sort_net): SimpleSortNet(\n",
+            "                        (act): ReLU()\n",
+            "                      )\n",
+            "                      (dropout): Dropout(p=0.0, inplace=False)\n",
+            "                    )\n",
+            "                    (dropout): Dropout(p=0.0, inplace=False)\n",
+            "                  )\n",
+            "                )\n",
+            "                (1): PreNorm(\n",
+            "                  (norm): LayerNorm((768,), eps=1e-05, elementwise_affine=True)\n",
+            "                  (fn): Chunk(\n",
+            "                    (fn): FeedForward(\n",
+            "                      (w1): Linear(in_features=768, out_features=3072, bias=True)\n",
+            "                      (act): GELU(approximate='none')\n",
+            "                      (dropout): Dropout(p=0.0, inplace=False)\n",
+            "                      (w2): Linear(in_features=3072, out_features=768, bias=True)\n",
+            "                    )\n",
+            "                  )\n",
+            "                )\n",
+            "              )\n",
+            "            )\n",
+            "          )\n",
+            "        )\n",
+            "        (norm): LayerNorm((768,), eps=1e-05, elementwise_affine=True)\n",
+            "        (to_logits): Linear(in_features=768, out_features=8224, bias=True)\n",
+            "      )\n",
+            "    )\n",
+            "  )\n",
+            "  (loss_fct): CrossEntropyLoss()\n",
+            ")\u001b[1;34m\n",
+            "Trainable parameters\u001b[0m: 102982932\u001b[0m\n",
+            "\u001b[0m13 Apr 21:04    INFO  Only index assignment tuned.\u001b[0m\n",
+            "\u001b[1;35mTrain     0\u001b[0m:   0%|                                                           | 0/17 [00:00<?, ?it/s]\u001b[0m\u001b[0m\n",
+            "\u001b[0mTraceback (most recent call last):\n",
+            "\u001b[0m  File \"/content/VQ-Rec/finetune.py\", line 82, in <module>\n",
+            "\u001b[0m    \u001b[0mfinetune(args.m, args.d, pretrained_file=args.p, finetune_mode=args.f)\u001b[0m\n",
+            "\u001b[0m  File \"/content/VQ-Rec/finetune.py\", line 55, in finetune\n",
+            "\u001b[0m    \u001b[0mbest_valid_score, best_valid_result = trainer.fit(\u001b[0m\n",
+            "\u001b[0m  File \"/content/VQ-Rec/trainer.py\", line 69, in fit\n",
+            "\u001b[0m    \u001b[0mtrain_loss = self._train_epoch(train_data, epoch_idx, show_progress=show_progress)\u001b[0m\n",
+            "\u001b[0m  File \"/content/VQ-Rec/trainer.py\", line 156, in _train_epoch\n",
+            "\u001b[0m    \u001b[0mlosses = loss_func(interaction)\u001b[0m\n",
+            "\u001b[0m  File \"/content/VQ-Rec/vqrecSink.py\", line 225, in calculate_loss\n",
+            "\u001b[0m    \u001b[0mseq_output = self.forward(item_seq, item_seq_len)\u001b[0m\n",
+            "\u001b[0m  File \"/content/VQ-Rec/vqrecSink.py\", line 158, in forward\n",
+            "\u001b[0m    \u001b[0mx = self.trm_encoder(x)\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/torch/nn/modules/module.py\", line 1501, in _call_impl\n",
+            "\u001b[0m    \u001b[0mreturn forward_call(*args, **kwargs)\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/sinkhorn_transformer/autoregressive_wrapper.py\", line 98, in forward\n",
+            "\u001b[0m    \u001b[0mreturn self.net(x, **kwargs)\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/torch/nn/modules/module.py\", line 1501, in _call_impl\n",
+            "\u001b[0m    \u001b[0mreturn forward_call(*args, **kwargs)\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/sinkhorn_transformer/autopadder.py\", line 68, in forward\n",
+            "\u001b[0m    \u001b[0mout = self.net(x, **kwargs)\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/torch/nn/modules/module.py\", line 1501, in _call_impl\n",
+            "\u001b[0m    \u001b[0mreturn forward_call(*args, **kwargs)\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/sinkhorn_transformer/sinkhorn_transformer.py\", line 729, in forward\n",
+            "\u001b[0m    \u001b[0mx = self.axial_pos_emb(x) + x\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/torch/nn/modules/module.py\", line 1501, in _call_impl\n",
+            "\u001b[0m    \u001b[0mreturn forward_call(*args, **kwargs)\u001b[0m\n",
+            "\u001b[0m  File \"/usr/local/lib/python3.9/dist-packages/axial_positional_embedding/axial_positional_embedding.py\", line 37, in forward\n",
+            "\u001b[0m    \u001b[0memb = ax_emb.expand(expand_shape).reshape(b, self.max_seq_len, axial_dim)\u001b[0m\n",
+            "\u001b[0mtorch.cuda\u001b[0m.\u001b[0mOutOfMemoryError\u001b[0m: \u001b[0mCUDA out of memory. Tried to allocate 9.00 GiB (GPU 0; 14.75 GiB total capacity; 5.01 GiB already allocated; 8.64 GiB free; 5.08 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF\u001b[0m\n",
+            "\u001b[0m\u001b[0m"
+          ]
+        }
+      ],
+      "source": [
+        "!python finetune.py -d Scientific -p pretrained/VQRec-FHCKM-300.pth --learning_rate=0.003"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "BOGVsuIxWGLH"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "accelerator": "GPU",
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "gpuClass": "standard",
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
