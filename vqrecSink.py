@@ -5,6 +5,9 @@ from recbole.model.abstract_recommender import SequentialRecommender
 from sinkhorn_transformer import SinkhornTransformerLM, AutoregressiveWrapper
 from sinkhorn_transformer import Autopadder
 
+#Based on the error message, it seems like there is an issue with the output of the transformer encoder. Specifically, the output tensor has a shape of (batch_size, seq_len, hidden_size) where hidden_size is 300, which is consistent with the model architecture. However, the pooling operation is expecting a tensor of shape (batch_size, hidden_size).
+
+#One way to resolve this issue is to modify the forward method of the vqrecSink class to apply the pooling operation along the sequence length dimension before passing the output through the linear layer. This can be done using the mean or max pooling operation along the second dimension of the tensor (i.e., dim=1). Here's an example of how to modify the code:#
 
 #Lehmer codes, hungarian, rq vae, Scalable Sinkhorn Backpropagation
 #soft-margin softmax (SM-softmax)
