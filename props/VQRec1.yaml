@@ -2,23 +2,18 @@ hidden_act: 'gelu'
 layer_norm_eps: 1e-12
 initializer_range: 0.02
 MAX_ITEM_LIST_LENGTH: 50
-num_tokens: 2048
-dim: 256
+num_tokens: 300
+dim: 1024
 heads: 8
 depth: 12
-max_seq_len: 1024
-window_size: 512
-bucket_size: 512
+max_seq_len: 300
+bucket_size: 300
 causal: False
 loss_type: 'CE'
 layer_norm_eps: 1e-12
 initializer_range: 0.02
-loss_type: 'CE'
-use_simple_sort_net: True
-sinkhorn_iter: 7     
-n_sortcut: 2       
+loss_type: 'CE'     
 temperature: 0.75        
-non_permutative: False
 
 code_dim: 32
 code_cap: 256
@@ -34,6 +29,6 @@ plm_suffix: feat1CLS
 plm_size: 768
 sinkhorn_iter: 3
 reassign_steps: 5
-eval_batch_size: 1
+eval_batch_size: 1024
 
 fake_idx_ratio: 0.75
