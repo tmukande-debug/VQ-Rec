@@ -153,6 +153,13 @@ class VQRec(SequentialRecommender):
     def forward(self, input_emb, item_seq_len, extra_arg=None):
         trm_output = self.trm_encoder(input_emb, output_all_encoded_layers=True)
         output = self.pooler(trm_output[0])
+        
+        # Pooling
+        #output = torch.mean(trm_output, dim=1)
+
+        # Output Layer
+        #output = self.out_proj(pooled_output)
+
         if extra_arg is not None:
         # use the extra_arg here
            pass
