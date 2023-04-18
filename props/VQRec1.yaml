@@ -1,13 +1,13 @@
 hidden_act: 'gelu'
 layer_norm_eps: 1e-12
 initializer_range: 0.02
-MAX_ITEM_LIST_LENGTH: 50
+MAX_ITEM_LIST_LENGTH: 300
 num_tokens: 7680
 dim: 1024
 heads: 8
 depth: 12
-max_seq_len: 300
-bucket_size: 300
+max_seq_len: 256
+bucket_size: 256
 causal: False
 loss_type: 'CE'
 layer_norm_eps: 1e-12
@@ -29,6 +29,7 @@ plm_suffix: feat1CLS
 plm_size: 768
 sinkhorn_iter: 3
 reassign_steps: 5
+train_batch_size: 2048
 eval_batch_size: 1024
 
 fake_idx_ratio: 0.75
